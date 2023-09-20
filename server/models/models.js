@@ -223,6 +223,11 @@ Rejection.belongsTo(Coordinator);
 
 module.exports = {
   User,
+  Coordinator,
+  Physician,
+  Icd,
+  Hospital,
+  Specialty,
   Patient,
   Request,
   Rejection,
