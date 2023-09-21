@@ -21,18 +21,18 @@ const Coordinator = sequelize.define(
         return `${this.lastName} ${this.firstName} ${this.middleName}`;
       },
     },
+    dateOfBirth: { type: DataTypes.DATEONLY },
     shortName: {
       type: DataTypes.VIRTUAL,
       get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}`;
+        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
       },
     },
     cellPhoneNumber: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       unique: true,
       allowNull: false,
     },
-    schedule: { type: DataTypes.JSON },
   },
   { timestamps: false },
 );
@@ -54,15 +54,14 @@ const Physician = sequelize.define(
     shortName: {
       type: DataTypes.VIRTUAL,
       get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}`;
+        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
       },
     },
     email: { type: DataTypes.STRING, unique: true },
-    cellPhoneNumber: { type: DataTypes.INTEGER, unique: true },
+    cellPhoneNumber: { type: DataTypes.STRING, unique: true },
     emiasLogin: { type: DataTypes.STRING, unique: true },
     emiasPassword: { type: DataTypes.STRING },
     departmentHead: { type: DataTypes.BOOLEAN, defaultValue: false },
-    schedule: { type: DataTypes.JSON },
   },
   { timestamps: false },
 );
@@ -79,6 +78,12 @@ const Patient = sequelize.define("patients", {
     type: DataTypes.VIRTUAL,
     get() {
       return `${this.lastName} ${this.firstName} ${this.middleName}`;
+    },
+  },
+  shortName: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
     },
   },
   dateOfBirth: { type: DataTypes.DATEONLY },
@@ -122,6 +127,12 @@ const Specialty = sequelize.define(
   },
   { timestamps: false },
 );
+
+const Schedule = sequelize.define("schedules", {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  date: { type: DataTypes.DATEONLY },
+  shift: { type: DataTypes.INTEGER },
+});
 
 const Rejection = sequelize.define("rejections", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -221,6 +232,12 @@ Rejection.belongsTo(Patient);
 Coordinator.hasMany(Rejection);
 Rejection.belongsTo(Coordinator);
 
+Physician.hasMany(Schedule);
+Schedule.belongsTo(Physician);
+
+Coordinator.hasMany(Schedule);
+Schedule.belongsTo(Coordinator);
+
 module.exports = {
   User,
   Coordinator,
@@ -231,4 +248,5 @@ module.exports = {
   Patient,
   Request,
   Rejection,
+  Schedule,
 };
