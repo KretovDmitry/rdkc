@@ -6,6 +6,7 @@ const patientRouter = require("../routes/patientRouter");
 const physicianRouter = require("../routes/physicianRouter");
 const rejectRouter = require("../routes/rejectRouter");
 const requestRouter = require("../routes/requestRouter");
+const scheduleRouter = require("../routes/scheduleRouter");
 const specialtyRouter = require("../routes/specialtyRouter");
 const userRouter = require("../routes/userRouter");
 
@@ -15,6 +16,7 @@ router.use("/patient", patientRouter);
 router.use("/physician", physicianRouter);
 router.use("/reject", rejectRouter);
 router.use("/request", requestRouter);
+router.use("/schedule", scheduleRouter);
 router.use("/specialty", specialtyRouter);
 router.use("/user", userRouter);
 

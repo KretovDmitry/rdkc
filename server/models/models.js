@@ -25,11 +25,11 @@ const Coordinator = sequelize.define(
     shortName: {
       type: DataTypes.VIRTUAL,
       get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}`;
+        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
       },
     },
     cellPhoneNumber: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       unique: true,
       allowNull: false,
     },
@@ -54,11 +54,11 @@ const Physician = sequelize.define(
     shortName: {
       type: DataTypes.VIRTUAL,
       get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}`;
+        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
       },
     },
     email: { type: DataTypes.STRING, unique: true },
-    cellPhoneNumber: { type: DataTypes.INTEGER, unique: true },
+    cellPhoneNumber: { type: DataTypes.STRING, unique: true },
     emiasLogin: { type: DataTypes.STRING, unique: true },
     emiasPassword: { type: DataTypes.STRING },
     departmentHead: { type: DataTypes.BOOLEAN, defaultValue: false },
@@ -78,6 +78,12 @@ const Patient = sequelize.define("patients", {
     type: DataTypes.VIRTUAL,
     get() {
       return `${this.lastName} ${this.firstName} ${this.middleName}`;
+    },
+  },
+  shortName: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
     },
   },
   dateOfBirth: { type: DataTypes.DATEONLY },
@@ -124,7 +130,7 @@ const Specialty = sequelize.define(
 
 const Schedule = sequelize.define("schedules", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  day: { type: DataTypes.DATEONLY },
+  date: { type: DataTypes.DATEONLY },
   shift: { type: DataTypes.INTEGER },
 });
 

@@ -1,27 +1,31 @@
-const { Hospital } = require("../models/models");
+const { Coordinator } = require("../models/models");
 const ApiError = require("../error/ApiError");
 
 class CoordinatorController {
   async create(req, res, next) {
     try {
-      const { lastName, firstName, middleName, cellPhoneNumber } = req.body;
-      const newHospital = await Hospital.create({ hospital, emiasHospital });
-      return res.json(newHospital);
+      const newCoordinator = await Coordinator.create({ ...req.body });
+      return res.json(newCoordinator);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
   }
-  async getAll(req, res) {
-    const hospitals = await Hospital.findAll();
-    return res.json(hospitals);
+  async getAll(req, res, next) {
+    try {
+      const coordinators = await Coordinator.findAll();
+      return res.json(coordinators);
+    } catch (e) {
+      next(ApiError.badRequest(e.message));
+    }
   }
   async getOne(req, res, next) {
     const { id } = req.params;
-    if (!id) {
-      return next(ApiError.badRequest("Не задан ID"));
+    try {
+      const coordinator = await Coordinator.findOne({ where: { id } });
+      return res.json(coordinator);
+    } catch (e) {
+      next(ApiError.badRequest(e.message));
     }
-    const hospital = await Hospital.findOne({ where: { id } });
-    return res.json(hospital);
   }
 }
 

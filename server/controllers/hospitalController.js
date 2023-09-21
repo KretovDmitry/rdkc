@@ -15,14 +15,6 @@ class HospitalController {
     const hospitals = await Hospital.findAll();
     return res.json(hospitals);
   }
-  async getOne(req, res, next) {
-    const { id } = req.params;
-    if (!id) {
-      return next(ApiError.badRequest("Не задан ID"));
-    }
-    const hospital = await Hospital.findOne({ where: { id } });
-    return res.json(hospital);
-  }
 }
 
 module.exports = new HospitalController();

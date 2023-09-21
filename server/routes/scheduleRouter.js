@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const hospitalController = require("../controllers/hospitalController");
+const scheduleController = require("../controllers/scheduleController");
 
-router.post("/", hospitalController.create);
-router.get("/", hospitalController.getAll);
-router.get("/:id", hospitalController.getOne);
+router.post("/", scheduleController.create);
+router.get("/:startDate.:endDate", scheduleController.getBetween);
+router.get("/:date", scheduleController.getExact);
 
 module.exports = router;
