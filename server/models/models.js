@@ -21,6 +21,7 @@ const Coordinator = sequelize.define(
         return `${this.lastName} ${this.firstName} ${this.middleName}`;
       },
     },
+    dateOfBirth: { type: DataTypes.DATEONLY },
     shortName: {
       type: DataTypes.VIRTUAL,
       get() {
@@ -32,7 +33,6 @@ const Coordinator = sequelize.define(
       unique: true,
       allowNull: false,
     },
-    schedule: { type: DataTypes.JSON },
   },
   { timestamps: false },
 );
@@ -62,7 +62,6 @@ const Physician = sequelize.define(
     emiasLogin: { type: DataTypes.STRING, unique: true },
     emiasPassword: { type: DataTypes.STRING },
     departmentHead: { type: DataTypes.BOOLEAN, defaultValue: false },
-    schedule: { type: DataTypes.JSON },
   },
   { timestamps: false },
 );
@@ -122,6 +121,12 @@ const Specialty = sequelize.define(
   },
   { timestamps: false },
 );
+
+const Schedule = sequelize.define("schedules", {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  day: { type: DataTypes.DATEONLY },
+  shift: { type: DataTypes.INTEGER },
+});
 
 const Rejection = sequelize.define("rejections", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -221,6 +226,12 @@ Rejection.belongsTo(Patient);
 Coordinator.hasMany(Rejection);
 Rejection.belongsTo(Coordinator);
 
+Physician.hasMany(Schedule);
+Schedule.belongsTo(Physician);
+
+Coordinator.hasMany(Schedule);
+Schedule.belongsTo(Coordinator);
+
 module.exports = {
   User,
   Coordinator,
@@ -231,4 +242,5 @@ module.exports = {
   Patient,
   Request,
   Rejection,
+  Schedule,
 };
