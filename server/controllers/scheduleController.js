@@ -4,12 +4,13 @@ const { Op } = require("sequelize");
 
 class ScheduleController {
   async create(req, res, next) {
-    try {
-      const newSchedule = await Schedule.create({ ...req.body });
-      return res.json(newSchedule);
-    } catch (e) {
-      next(ApiError.badRequest(e.message));
-    }
+    // try {
+    //   const newSchedule = await CoordinatorSchedule.create({ ...req.body });
+    //   return res.json(newSchedule);
+    // } catch (e) {
+    //   next(ApiError.badRequest(e.message));
+    // }
+    return res.json(req.params);
   }
   async getBetween(req, res, next) {
     const { startDate, endDate } = req.params;

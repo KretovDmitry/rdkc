@@ -1,7 +1,7 @@
 const sequelize = require("../db");
 const { DataTypes } = require("sequelize");
 
-const User = sequelize.define("users", {
+const User = sequelize.define("User", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   login: { type: DataTypes.STRING, unique: true, allowNull: false },
   password: { type: DataTypes.STRING, allowNull: false },
@@ -9,7 +9,7 @@ const User = sequelize.define("users", {
 });
 
 const Coordinator = sequelize.define(
-  "coordinators",
+  "Coordinator",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     lastName: { type: DataTypes.STRING, allowNull: false },
@@ -38,13 +38,14 @@ const Coordinator = sequelize.define(
 );
 
 const Physician = sequelize.define(
-  "physicians",
+  "Physician",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     specialty: { type: DataTypes.STRING, allowNull: false },
+    emiasSpecialty: { type: DataTypes.STRING, allowNull: false },
     lastName: { type: DataTypes.STRING, allowNull: false },
-    firstName: { type: DataTypes.STRING },
-    middleName: { type: DataTypes.STRING },
+    firstName: DataTypes.STRING,
+    middleName: DataTypes.STRING,
     fullName: {
       type: DataTypes.VIRTUAL,
       get() {
@@ -60,20 +61,20 @@ const Physician = sequelize.define(
     email: { type: DataTypes.STRING, unique: true },
     cellPhoneNumber: { type: DataTypes.STRING, unique: true },
     emiasLogin: { type: DataTypes.STRING, unique: true },
-    emiasPassword: { type: DataTypes.STRING },
+    emiasPassword: DataTypes.STRING,
     departmentHead: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { timestamps: false },
 );
 
-const Patient = sequelize.define("patients", {
+const Patient = sequelize.define("Patient", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   emiasId: { type: DataTypes.INTEGER, unique: true, allowNull: false },
   emiasServerId: { type: DataTypes.INTEGER, unique: true, allowNull: false },
   ident: { type: DataTypes.BOOLEAN, defaultValue: false },
-  lastName: { type: DataTypes.STRING },
-  firstName: { type: DataTypes.STRING },
-  middleName: { type: DataTypes.STRING },
+  lastName: DataTypes.STRING,
+  firstName: DataTypes.STRING,
+  middleName: DataTypes.STRING,
   fullName: {
     type: DataTypes.VIRTUAL,
     get() {
@@ -86,20 +87,20 @@ const Patient = sequelize.define("patients", {
       return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
     },
   },
-  dateOfBirth: { type: DataTypes.DATEONLY },
-  gender: { type: DataTypes.STRING },
+  dateOfBirth: DataTypes.DATEONLY,
+  gender: DataTypes.STRING,
   snils: { type: DataTypes.INTEGER, unique: true },
   omsNumber: { type: DataTypes.INTEGER, unique: true },
-  omsCompany: { type: DataTypes.STRING },
+  omsCompany: DataTypes.STRING,
   isRejected: { type: DataTypes.BOOLEAN, defaultValue: false },
   isDead: { type: DataTypes.BOOLEAN, defaultValue: false },
   deadDate: { type: DataTypes.DATEONLY, defaultValue: null },
   deadTime: { type: DataTypes.TIME, defaultValue: null },
-  reanimationStory: { type: DataTypes.JSON },
+  // TODO reanimationStory: { type: DataTypes.JSON },
 });
 
 const Icd = sequelize.define(
-  "icd_codes",
+  "Icd",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     icdCode: { type: DataTypes.STRING, unique: true, allowNull: false },
@@ -109,7 +110,7 @@ const Icd = sequelize.define(
 );
 
 const Hospital = sequelize.define(
-  "hospitals",
+  "Hospital",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     hospital: { type: DataTypes.STRING, allowNull: false },
@@ -118,118 +119,92 @@ const Hospital = sequelize.define(
   { timestamps: false },
 );
 
-const Specialty = sequelize.define(
-  "specialties",
-  {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    specialty: { type: DataTypes.STRING, allowNull: false },
-    emiasSpecialty: { type: DataTypes.STRING, unique: true, allowNull: false },
-  },
-  { timestamps: false },
-);
-
-const Schedule = sequelize.define("schedules", {
+const Schedule = sequelize.define("Schedule", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  date: { type: DataTypes.DATEONLY },
-  shift: { type: DataTypes.INTEGER },
+  year: { type: DataTypes.INTEGER(4), validate: { min: 2020, max: 2030 } },
+  month: { type: DataTypes.INTEGER(2), validate: { min: 1, max: 12 } },
+  shifts: DataTypes.RANGE(DataTypes.DATE),
 });
 
-const Rejection = sequelize.define("rejections", {
+const Rejection = sequelize.define("Rejection", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   isRean: { type: DataTypes.BOOLEAN, defaultValue: true },
   isAdultAtRequestDate: { type: DataTypes.BOOLEAN, defaultValue: true },
   requestDate: { type: DataTypes.DATEONLY, allowNull: false },
-  icdCode: { type: DataTypes.INTEGER, allowNull: false },
-  specialtyId: { type: DataTypes.INTEGER },
-  rejectionCause: { type: DataTypes.STRING },
-  comment: { type: DataTypes.STRING },
+  icdCode: { type: DataTypes.STRING, allowNull: false },
+  cause: DataTypes.STRING,
+  comment: DataTypes.STRING,
   correctRetry: { type: DataTypes.BOOLEAN, defaultValue: false },
 });
 
-const Request = sequelize.define("requests", {
+const Request = sequelize.define("Request", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   emiasRequestNumber: {
     type: DataTypes.INTEGER,
     unique: true,
     allowNull: false,
-    field: "emias_request_number",
   },
   internalSerial: {
-    type: DataTypes.FLOAT,
+    type: DataTypes.FLOAT(10),
     allowNull: false,
-    field: "internal_serial",
   },
   requestDate: {
-    type: DataTypes.DATE,
+    type: DataTypes.DATEONLY,
     allowNull: false,
-    field: "request_date",
   },
+  requestTime: DataTypes.TIME,
   isAdultAtRequestDate: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
-    field: "is_adult_at_request_date",
   },
   isRean: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
-    field: "is_rean",
   },
-  icdCode: { type: DataTypes.INTEGER, field: "icd_code", allowNull: false },
+  icdCode: { type: DataTypes.STRING, allowNull: false },
   IsIcdCodeValid: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     allowNull: false,
-    field: "is_icd_code_valid",
   },
   responseArrivalTimestamp: {
     type: DataTypes.DATE,
     defaultValue: null,
-    field: "response_arrival_timestamp",
   },
   serviceCode: {
     type: DataTypes.STRING,
-    allowNull: false,
     defaultValue: "A13.29.009.2",
-    field: "service_code",
   },
   responseUploadTimestamp: {
     type: DataTypes.DATE,
     defaultValue: null,
-    field: "response_upload_timestamp",
   },
-  answerPath: {
-    type: DataTypes.STRING,
-    field: "answer_path",
-  },
+  answerPath: DataTypes.STRING,
   answerSentToAFL: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
-    field: "answer_sent_to_AFL",
   },
 });
 
-Hospital.hasMany(Request);
+Hospital.hasMany(Request, { foreignKey: { allowNull: false } });
 Request.belongsTo(Hospital);
 
-Patient.hasMany(Request);
+Patient.hasMany(Request, { foreignKey: { allowNull: false } });
 Request.belongsTo(Patient);
 
-Specialty.hasMany(Request);
-Request.belongsTo(Specialty);
-
-Physician.hasMany(Request);
+Physician.hasMany(Request, { foreignKey: { allowNull: false } });
 Request.belongsTo(Physician);
 
-Coordinator.hasMany(Request);
+Coordinator.hasMany(Request, { foreignKey: { allowNull: false } });
 Request.belongsTo(Coordinator);
 
-Hospital.hasMany(Rejection);
+Hospital.hasMany(Rejection, { foreignKey: { allowNull: false } });
 Rejection.belongsTo(Hospital);
 
-Patient.hasMany(Rejection);
+Patient.hasMany(Rejection, { foreignKey: { allowNull: false } });
 Rejection.belongsTo(Patient);
 
-Coordinator.hasMany(Rejection);
+Coordinator.hasMany(Rejection, { foreignKey: { allowNull: false } });
 Rejection.belongsTo(Coordinator);
 
 Physician.hasMany(Schedule);
@@ -244,7 +219,6 @@ module.exports = {
   Physician,
   Icd,
   Hospital,
-  Specialty,
   Patient,
   Request,
   Rejection,
