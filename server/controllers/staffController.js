@@ -21,8 +21,8 @@ class StaffController {
   async getOne(req, res, next) {
     const { id } = req.params;
     try {
-      const staff = await Staff.findOne({ where: { id } });
-      return res.json(staff);
+      const employee = await Staff.findOne({ where: { id } });
+      return res.json(employee);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }

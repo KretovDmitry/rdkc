@@ -4,16 +4,16 @@ const ApiError = require("../error/ApiError");
 class PatientController {
   async create(req, res, next) {
     try {
-      const newStaff = await Patient.create({ ...req.body });
-      return res.json(newStaff);
+      const newPatient = await Patient.create({ ...req.body });
+      return res.json(newPatient);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
   }
   async getAll(req, res, next) {
     try {
-      const staff = await Patient.findAll();
-      return res.json(staff);
+      const patients = await Patient.findAll();
+      return res.json(patients);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
@@ -21,8 +21,8 @@ class PatientController {
   async getOne(req, res, next) {
     const { id } = req.params;
     try {
-      const staff = await Patient.findOne({ where: { id } });
-      return res.json(staff);
+      const patient = await Patient.findOne({ where: { id } });
+      return res.json(patient);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }

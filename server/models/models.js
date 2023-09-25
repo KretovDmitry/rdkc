@@ -12,13 +12,8 @@ const Staff = sequelize.define(
   "Staff",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    specialty: DataTypes.STRING,
-    emiasSpecialty: DataTypes.STRING,
-    role: {
-      type: DataTypes.STRING,
-      defaultValue: "PHYSICIAN",
-      allowNull: false,
-    },
+    specialty: { type: DataTypes.STRING },
+    emiasSpecialty: { type: DataTypes.STRING },
     lastName: { type: DataTypes.STRING, allowNull: false },
     firstName: DataTypes.STRING,
     middleName: DataTypes.STRING,
@@ -40,8 +35,13 @@ const Staff = sequelize.define(
     emiasLogin: { type: DataTypes.STRING, unique: true },
     emiasPassword: DataTypes.STRING,
     departmentHead: { type: DataTypes.BOOLEAN, defaultValue: false },
+    role: {
+      type: DataTypes.STRING,
+      defaultValue: "PHYSICIAN",
+      allowNull: false,
+    },
   },
-  { timestamps: false },
+  { timestamps: false, freezeTableName: true },
 );
 
 const Patient = sequelize.define("Patient", {
@@ -97,20 +97,21 @@ const Hospital = sequelize.define(
 
 const Schedule = sequelize.define("Schedule", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  start: DataTypes.DATE,
-  end: DataTypes.DATE,
+  startDate: DataTypes.DATEONLY,
+  endDate: DataTypes.DATEONLY,
+  startTime: DataTypes.TIME,
+  endTime: DataTypes.TIME,
 });
 
 const Request = sequelize.define("Request", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   emiasRequestNumber: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING,
     unique: true,
     allowNull: false,
   },
   internalSerial: {
     type: DataTypes.FLOAT(10),
-    allowNull: false,
   },
   requestDate: {
     type: DataTypes.DATEONLY,
@@ -139,17 +140,17 @@ const Request = sequelize.define("Request", {
     type: DataTypes.DATE,
     defaultValue: null,
   },
+  serviceCode: {
+    type: DataTypes.STRING,
+    defaultValue: "A13.29.009.2",
+  },
   result: DataTypes.STRING,
-  isRejected: { type: DataTypes.BOOLEAN, defaultValue: false },
   answerPath: DataTypes.STRING,
   answerSentToAFL: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
-  serviceCode: {
-    type: DataTypes.STRING,
-    defaultValue: "A13.29.009.2",
-  },
+  isRejected: { type: DataTypes.BOOLEAN, defaultValue: false },
 });
 
 Hospital.hasMany(Request, { foreignKey: { allowNull: false } });
@@ -159,9 +160,11 @@ Patient.hasMany(Request, { foreignKey: { allowNull: false } });
 Request.belongsTo(Patient);
 
 Staff.hasMany(Request, {
-  foreignKey: { allowNull: false, name: "physicianId" },
+  foreignKey: { name: "physicianId", allowNull: false },
 });
-Request.belongsTo(Staff, { allowNull: false, name: "coordinatorId" });
+Request.belongsTo(Staff, {
+  foreignKey: { name: "coordinatorId", allowNull: false },
+});
 
 Staff.hasMany(Schedule, { foreignKey: { allowNull: false } });
 Schedule.belongsTo(Staff);
