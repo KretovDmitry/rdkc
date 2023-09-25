@@ -8,41 +8,12 @@ const User = sequelize.define("User", {
   role: { type: DataTypes.STRING, defaultValue: "USER", allowNull: false },
 });
 
-const Coordinator = sequelize.define(
-  "Coordinator",
+const Staff = sequelize.define(
+  "Staff",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    lastName: { type: DataTypes.STRING, allowNull: false },
-    firstName: { type: DataTypes.STRING, allowNull: false },
-    middleName: { type: DataTypes.STRING, allowNull: false },
-    fullName: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return `${this.lastName} ${this.firstName} ${this.middleName}`;
-      },
-    },
-    dateOfBirth: { type: DataTypes.DATEONLY },
-    shortName: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
-      },
-    },
-    cellPhoneNumber: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false,
-    },
-  },
-  { timestamps: false },
-);
-
-const Physician = sequelize.define(
-  "Physician",
-  {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    specialty: { type: DataTypes.STRING, allowNull: false },
-    emiasSpecialty: { type: DataTypes.STRING, allowNull: false },
+    specialty: { type: DataTypes.STRING },
+    emiasSpecialty: { type: DataTypes.STRING },
     lastName: { type: DataTypes.STRING, allowNull: false },
     firstName: DataTypes.STRING,
     middleName: DataTypes.STRING,
@@ -58,13 +29,19 @@ const Physician = sequelize.define(
         return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
       },
     },
+    dateOfBirth: DataTypes.DATEONLY,
     email: { type: DataTypes.STRING, unique: true },
     cellPhoneNumber: { type: DataTypes.STRING, unique: true },
     emiasLogin: { type: DataTypes.STRING, unique: true },
     emiasPassword: DataTypes.STRING,
     departmentHead: { type: DataTypes.BOOLEAN, defaultValue: false },
+    role: {
+      type: DataTypes.STRING,
+      defaultValue: "PHYSICIAN",
+      allowNull: false,
+    },
   },
-  { timestamps: false },
+  { timestamps: false, freezeTableName: true },
 );
 
 const Patient = sequelize.define("Patient", {
@@ -89,10 +66,9 @@ const Patient = sequelize.define("Patient", {
   },
   dateOfBirth: DataTypes.DATEONLY,
   gender: DataTypes.STRING,
-  snils: { type: DataTypes.INTEGER, unique: true },
-  omsNumber: { type: DataTypes.INTEGER, unique: true },
+  snils: { type: DataTypes.STRING, unique: true },
+  omsNumber: { type: DataTypes.STRING, unique: true },
   omsCompany: DataTypes.STRING,
-  isRejected: { type: DataTypes.BOOLEAN, defaultValue: false },
   isDead: { type: DataTypes.BOOLEAN, defaultValue: false },
   deadDate: { type: DataTypes.DATEONLY, defaultValue: null },
   deadTime: { type: DataTypes.TIME, defaultValue: null },
@@ -121,32 +97,21 @@ const Hospital = sequelize.define(
 
 const Schedule = sequelize.define("Schedule", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  year: { type: DataTypes.INTEGER(4), validate: { min: 2020, max: 2030 } },
-  month: { type: DataTypes.INTEGER(2), validate: { min: 1, max: 12 } },
-  shifts: DataTypes.RANGE(DataTypes.DATE),
-});
-
-const Rejection = sequelize.define("Rejection", {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  isRean: { type: DataTypes.BOOLEAN, defaultValue: true },
-  isAdultAtRequestDate: { type: DataTypes.BOOLEAN, defaultValue: true },
-  requestDate: { type: DataTypes.DATEONLY, allowNull: false },
-  icdCode: { type: DataTypes.STRING, allowNull: false },
-  cause: DataTypes.STRING,
-  comment: DataTypes.STRING,
-  correctRetry: { type: DataTypes.BOOLEAN, defaultValue: false },
+  startDate: DataTypes.DATEONLY,
+  endDate: DataTypes.DATEONLY,
+  startTime: DataTypes.TIME,
+  endTime: DataTypes.TIME,
 });
 
 const Request = sequelize.define("Request", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   emiasRequestNumber: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING,
     unique: true,
     allowNull: false,
   },
   internalSerial: {
     type: DataTypes.FLOAT(10),
-    allowNull: false,
   },
   requestDate: {
     type: DataTypes.DATEONLY,
@@ -171,19 +136,21 @@ const Request = sequelize.define("Request", {
     type: DataTypes.DATE,
     defaultValue: null,
   },
-  serviceCode: {
-    type: DataTypes.STRING,
-    defaultValue: "A13.29.009.2",
-  },
   responseUploadTimestamp: {
     type: DataTypes.DATE,
     defaultValue: null,
   },
+  serviceCode: {
+    type: DataTypes.STRING,
+    defaultValue: "A13.29.009.2",
+  },
+  result: DataTypes.STRING,
   answerPath: DataTypes.STRING,
   answerSentToAFL: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  isRejected: { type: DataTypes.BOOLEAN, defaultValue: false },
 });
 
 Hospital.hasMany(Request, { foreignKey: { allowNull: false } });
@@ -192,35 +159,22 @@ Request.belongsTo(Hospital);
 Patient.hasMany(Request, { foreignKey: { allowNull: false } });
 Request.belongsTo(Patient);
 
-Physician.hasMany(Request, { foreignKey: { allowNull: false } });
-Request.belongsTo(Physician);
+Staff.hasMany(Request, {
+  foreignKey: { name: "physicianId", allowNull: false },
+});
+Request.belongsTo(Staff, {
+  foreignKey: { name: "coordinatorId", allowNull: false },
+});
 
-Coordinator.hasMany(Request, { foreignKey: { allowNull: false } });
-Request.belongsTo(Coordinator);
-
-Hospital.hasMany(Rejection, { foreignKey: { allowNull: false } });
-Rejection.belongsTo(Hospital);
-
-Patient.hasMany(Rejection, { foreignKey: { allowNull: false } });
-Rejection.belongsTo(Patient);
-
-Coordinator.hasMany(Rejection, { foreignKey: { allowNull: false } });
-Rejection.belongsTo(Coordinator);
-
-Physician.hasMany(Schedule);
-Schedule.belongsTo(Physician);
-
-Coordinator.hasMany(Schedule);
-Schedule.belongsTo(Coordinator);
+Staff.hasMany(Schedule, { foreignKey: { allowNull: false } });
+Schedule.belongsTo(Staff);
 
 module.exports = {
   User,
-  Coordinator,
-  Physician,
   Icd,
   Hospital,
   Patient,
   Request,
-  Rejection,
   Schedule,
+  Staff,
 };

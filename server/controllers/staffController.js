@@ -1,19 +1,19 @@
-const { Physician } = require("../models/models");
+const { Staff } = require("../models/models");
 const ApiError = require("../error/ApiError");
 
-class PhysicianController {
+class StaffController {
   async create(req, res, next) {
     try {
-      const newPhysician = await Physician.create({ ...req.body });
-      return res.json(newPhysician);
+      const newStaff = await Staff.create({ ...req.body });
+      return res.json(newStaff);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
   }
   async getAll(req, res, next) {
     try {
-      const physicians = await Physician.findAll();
-      return res.json(physicians);
+      const staff = await Staff.findAll();
+      return res.json(staff);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
@@ -21,12 +21,12 @@ class PhysicianController {
   async getOne(req, res, next) {
     const { id } = req.params;
     try {
-      const physician = await Physician.findOne({ where: { id } });
-      return res.json(physician);
+      const employee = await Staff.findOne({ where: { id } });
+      return res.json(employee);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
   }
 }
 
-module.exports = new PhysicianController();
+module.exports = new StaffController();
