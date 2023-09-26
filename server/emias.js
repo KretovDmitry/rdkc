@@ -3,7 +3,7 @@ const superagent = require("superagent").agent();
 
 const today = new Date().toLocaleDateString("ru");
 const account = {
-  emiasLogin: process.env.EMIAS_DEFAULT_LOGIN,
+  login: process.env.EMIAS_DEFAULT_LOGIN,
   psw: process.env.EMIAS_DEFAULT_PASSWORD,
 };
 const patientsPayload = [
@@ -21,7 +21,7 @@ const patientsPayload = [
   },
 ];
 
-const loadWork = async (payload, account) => {
+export const loadWork = async (payload, account) => {
   const cookies = await getCookies();
   console.log("getCookies() =>", cookies);
   await superagent
@@ -29,8 +29,7 @@ const loadWork = async (payload, account) => {
     .set("Content-Type", "application/x-www-form-urlencoded")
     .set("Cookie", cookies)
     .send(account);
-  console.log("superagent() => Logged in!");
-  return getAllPatients(payload);
+  return await getAllPatients(payload);
 };
 
 const getCookies = async () => {
@@ -52,6 +51,7 @@ const getPatients = async (payload) => {
 };
 
 const getAllPatients = async (payload) => {
+  console.log("superagent() => Logged in!");
   const patients = [];
   for (p of payload) {
     const response = await getPatients(p);
