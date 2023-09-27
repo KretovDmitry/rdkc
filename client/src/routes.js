@@ -1,36 +1,24 @@
-import {
-  ADMIN_ROUTE,
-  LOGIN_ROUTE,
-  REGISTRATION_ROUTE,
-  REQUESTS_ROUTE,
-  SCHEDULE_ROUTE,
-} from "./utils/consts";
-import Admin from "./pages/Admin";
+import { createBrowserRouter } from "react-router-dom";
+import Root from "./pages/Root";
+import ErrorPage from "./pages/ErrorPage/ErrorPage";
 import Auth from "./pages/Auth";
 import Request from "./pages/Request";
-import Schedule from "./pages/Schedule";
+import React from "react";
 
-export const authRoutes = [
+export const router = createBrowserRouter([
   {
-    path: ADMIN_ROUTE,
-    Component: Admin,
+    path: "/",
+    element: <Root />,
+    errorElement: <ErrorPage />,
+    children: [
+      {
+        path: "login",
+        element: <Auth />,
+      },
+      {
+        path: "request",
+        element: <Request />,
+      },
+    ],
   },
-];
-export const publicRoutes = [
-  {
-    path: LOGIN_ROUTE,
-    Component: Auth,
-  },
-  {
-    path: REGISTRATION_ROUTE,
-    Component: Auth,
-  },
-  {
-    path: REQUESTS_ROUTE,
-    Component: Request,
-  },
-  {
-    path: SCHEDULE_ROUTE,
-    Component: Schedule,
-  },
-];
+]);
