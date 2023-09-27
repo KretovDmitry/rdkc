@@ -7,7 +7,7 @@ import {
 } from "./utils/consts";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
-import Requests from "./pages/Requests";
+import Request from "./pages/Request";
 import Schedule from "./pages/Schedule";
 
 export const authRoutes = [
@@ -27,7 +27,7 @@ export const publicRoutes = [
   },
   {
     path: REQUESTS_ROUTE,
-    Component: Requests,
+    Component: Request,
   },
   {
     path: SCHEDULE_ROUTE,

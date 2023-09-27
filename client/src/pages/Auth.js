@@ -1,11 +1,14 @@
 import React from "react";
-import { Button, Card, Container, Form } from "react-bootstrap";
+import { Button, Card, Form } from "react-bootstrap";
 
 const Auth = () => {
   return (
-    <Container
+    <div
       className={"d-flex justify-content-center align-items-center"}
-      style={{ height: window.innerHeight - 56 }}
+      style={{
+        height: window.innerHeight - 56,
+        backgroundColor: "rgba(0, 0, 0, 0.3)",
+      }}
     >
       <Card style={{ width: 500 }} className="p-5" data-bs-theme="dark">
         <h3 className="m-auto">Авторизация</h3>
@@ -17,7 +20,7 @@ const Auth = () => {
           </Button>
         </Form>
       </Card>
-    </Container>
+    </div>
   );
 };
 

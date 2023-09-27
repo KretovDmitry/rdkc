@@ -1,8 +1,8 @@
 import React from "react";
 import RequestStateContainer from "../components/request/RequestStateContainer";
 
-const Requests = () => {
+const Request = () => {
   return <RequestStateContainer />;
 };
 
-export default Requests;
+export default Request;
