@@ -785,9 +785,6 @@ export default class RequestStore {
     makeAutoObservable(this);
   }
 
-  setStates(states) {
-    this._states = states;
-  }
   setRequests(requests) {
     this._requests = requests;
   }
@@ -798,7 +795,7 @@ export default class RequestStore {
   get states() {
     return this._states;
   }
-  get requests() {
+  get getRequests() {
     return this._requests;
   }
   get selectedState() {

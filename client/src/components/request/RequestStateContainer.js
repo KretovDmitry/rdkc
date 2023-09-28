@@ -1,32 +1,21 @@
 import React, { useContext } from "react";
-import { Card, Col, Nav, Row } from "react-bootstrap";
+import { Card, Nav, Row } from "react-bootstrap";
 import { Context } from "../../index";
 import { observer } from "mobx-react-lite";
-
-const capitalize = (str) => {
-  if (typeof str === "string") {
-    const words = str.split(" ");
-    const capitalized = words.map(
-      (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-    );
-    return capitalized.join(" ");
-  } else {
-    return str;
-  }
-};
+import PatientCard from "./PatientCard";
 
 const RequestStateContainer = observer(() => {
-  const { work } = useContext(Context);
+  const { request } = useContext(Context);
   return (
     <Card>
       <Card.Header className="d-flex justify-content-between">
-        <Nav variant="tabs" defaultActiveKey={`#${work.states[0].link}`}>
-          {work.states.map((state) => (
+        <Nav variant="tabs" defaultActiveKey={`#${request.states[0].link}`}>
+          {request.states.map((state) => (
             <Nav.Item>
               <Nav.Link
                 key={state.id}
                 href={`#${state.link}`}
-                onClick={() => work.setSelectedState(state.status)}
+                onClick={() => request.setSelectedState(state.status)}
               >
                 {state.name}
               </Nav.Link>
@@ -36,33 +25,16 @@ const RequestStateContainer = observer(() => {
       </Card.Header>
       <Card.Body>
         <Row xxl={2} xl={2} lg={2} sm={1} xs={1} className="g-3">
-          {work.requests.map((request, idx) => {
-            const cards = [];
-            if (request["EvnDirectionStatus_SysNick"] === work.selectedState) {
-              cards.push(
-                <Col key={request["EvnDirection_Num"]}>
-                  <Card key={request["EvnDirection_Num"]}>
-                    {/* SHOULD BE PATIENT_ID WHEN SPECIALTIES COMBINED*/}
-                    <Card.Header
-                      className={
-                        "d-flex justify-content-between align-items-center"
-                      }
-                    >
-                      <div>{capitalize(request["Person_FIO"])}</div>
-                      <div>{`${request["EvnDirection_insDate"]}`}</div>
-                    </Card.Header>
-                    <Card.Body>
-                      <Card.Text className={"d-flex flex-column "}>
-                        <div>{`${request["Lpu_Nick"]}`}</div>
-                        <div>{`${request["Diag_FullName"]}`}</div>
-                      </Card.Text>
-                      <Card.Text>{`${request["LpuSectionProfile_Name"]}`}</Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>,
-              );
-            }
-            return cards;
+          {request.getRequests.map((request) => {
+            return request["EvnDirectionStatus_SysNick"] ===
+              request.selectedState ? (
+              <PatientCard
+                key={request["EvnDirection_Num"]}
+                request={request}
+              />
+            ) : (
+              <></>
+            );
           })}
         </Row>
       </Card.Body>
