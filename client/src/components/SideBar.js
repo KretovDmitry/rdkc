@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 const SideBar = () => {
   return (
-    <Nav defaultActiveKey="/request" className="flex-column ps-3 pt-3 pe-1">
+    <Nav className="flex-column ps-3 pt-3 pe-1">
       <Link to={"/request"} className={"pb-2"}>
         Заявки
       </Link>

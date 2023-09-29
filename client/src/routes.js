@@ -4,6 +4,9 @@ import ErrorPage from "./pages/ErrorPage/ErrorPage";
 import Auth from "./pages/Auth";
 import Request from "./pages/Request";
 import React from "react";
+import { fetchRequests } from "./http/requestAPI";
+import Schedule from "./pages/Schedule";
+import Statistics from "./pages/Statistics";
 
 export const router = createBrowserRouter([
   {
@@ -18,6 +21,14 @@ export const router = createBrowserRouter([
       {
         path: "request",
         element: <Request />,
+      },
+      {
+        path: "schedule",
+        element: <Schedule />,
+      },
+      {
+        path: "report",
+        element: <Statistics />,
       },
     ],
   },

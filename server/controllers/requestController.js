@@ -1,5 +1,8 @@
 const { Request } = require("../models/models");
 const ApiError = require("../error/ApiError");
+const { Emias } = require("../emias/emias");
+
+const today = new Date().toLocaleDateString("ru");
 
 class RequestController {
   async create(req, res, next) {
@@ -12,14 +15,15 @@ class RequestController {
   }
   async getAll(req, res, next) {
     try {
-      const patients = await Request.findAll();
+      const emias = new Emias(today, today);
+      const patients = await emias.loadWork();
       return res.json(patients);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
   }
   async getOne(req, res, next) {
-    const { id } = req.params;
+    const { status } = req.params;
     try {
       const patient = await Request.findOne({ where: { id } });
       return res.json(patient);

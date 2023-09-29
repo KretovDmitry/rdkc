@@ -4,6 +4,6 @@ const requestController = require("../controllers/requestController");
 
 router.post("/", requestController.create);
 router.get("/", requestController.getAll);
-router.get("/:id", requestController.getOne);
+router.get("/#:status", requestController.getOne);
 
 module.exports = router;

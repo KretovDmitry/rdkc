@@ -2,8 +2,7 @@ import React from "react";
 import { Card, Col } from "react-bootstrap";
 import { capitalize } from "../../utils/functions";
 
-const PatientCard = ({ request, specialties }) => {
-  console.log(specialties);
+const PatientCard = ({ request }) => {
   return (
     <Col>
       <Card>
@@ -18,11 +17,6 @@ const PatientCard = ({ request, specialties }) => {
           <div className={"d-flex flex-column "}>
             <div>{`${request["Lpu_Nick"]}`}</div>
             <div>{`${request["Diag_FullName"]}`}</div>
-          </div>
-          <div>
-            {specialties.map((specialty, idx) => (
-              <div key={idx}>{specialty}</div>
-            ))}
           </div>
         </Card.Body>
       </Card>
