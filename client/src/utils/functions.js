@@ -2737,7 +2737,7 @@ export const capitalize = (str) => {
 //     ConsultingForm_id: "1",
 //   },
 // ];
-export const sortRequests = (arr, state) => {
+export const sortRequestsByStatus = (arr, state) => {
   return arr.filter((item) => item["EvnDirectionStatus_SysNick"] === state);
 };
 
