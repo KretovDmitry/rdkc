@@ -26,8 +26,8 @@ export default class RequestStore {
       },
     ];
     this._requests = [];
-
     this._selectedState = "Queued";
+    this._selectedPatient = "";
     makeAutoObservable(this);
   }
 
@@ -38,6 +38,10 @@ export default class RequestStore {
     this._selectedState = state;
   }
 
+  setSelectedPatient(id) {
+    this._selectedState = id;
+  }
+
   get states() {
     return this._states;
   }
@@ -46,5 +50,9 @@ export default class RequestStore {
   }
   get selectedState() {
     return this._selectedState;
+  }
+
+  get selectedPatient() {
+    return this._selectedPatient;
   }
 }

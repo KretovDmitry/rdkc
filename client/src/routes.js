@@ -6,7 +6,7 @@ import Request from "./pages/Request";
 import React from "react";
 import Schedule from "./pages/Schedule";
 import Statistics from "./pages/Statistics";
-import { loadWork } from "./http/emiasAPI";
+// import { loadWork } from "./http/emiasAPI";
 
 // let requests = [
 //   {
@@ -219,7 +219,7 @@ import { loadWork } from "./http/emiasAPI";
 //     ConsultingForm_id: "1",
 //   },
 // ];
-let requests = loadWork();
+// let requests = loadWork();
 
 export const router = createBrowserRouter([
   {
@@ -233,7 +233,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "request",
-        element: <Request requests={requests} />,
+        element: <Request />,
       },
       {
         path: "schedule",

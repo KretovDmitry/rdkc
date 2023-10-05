@@ -1,5 +1,5 @@
-import axios from "axios";
-// const axios = require("axios");
+// import axios from "axios";
+const axios = require("axios");
 
 const today = new Date().toLocaleDateString("ru");
 
@@ -33,13 +33,18 @@ const emias = axios.create({
   },
 });
 
-export async function loadWork() {
-  await getCookies();
-  await login(account.login, account.psw);
+async function loadWork() {
+  if (!emias.defaults.headers.common["Cookie"]) {
+    console.log(emias.defaults.headers.common["Cookie"]);
+    await getCookies();
+    await login(account.login, account.psw);
+  }
+  console.log(emias.defaults.headers.common["Cookie"]);
   return await getAllPatients(patientsPayload);
 }
 
 async function getCookies() {
+  console.log("getCookies");
   const response = await emias.get("/?c=portal&m=promed&from=promed", {
     headers: { Referer: "http://hospital.emias.mosreg.ru/?c=promed" },
   });
@@ -50,6 +55,7 @@ async function getCookies() {
 }
 
 async function login(login, psw) {
+  console.log("login");
   await emias.post(
     "?c=main&m=index&method=Logon&login=" + login,
     { login, psw },
@@ -62,6 +68,7 @@ async function login(login, psw) {
 }
 
 async function getPatients(payload) {
+  console.log("getPatients");
   const response = await emias.post(
     "?c=EvnUslugaTelemed&m=loadWorkPlaceGrid",
     { ...payload },
@@ -83,7 +90,9 @@ async function getAllPatients(payload) {
   return patients;
 }
 
-(async () => {
-  const work = await loadWork();
-  console.log("loadWork() =>", work);
-})();
+module.exports = { loadWork };
+
+// (async () => {
+//   const work = await loadWork();
+//   console.log("loadWork() =>", work);
+// })();

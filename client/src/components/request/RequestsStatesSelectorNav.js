@@ -13,6 +13,7 @@ const RequestsStatesSelectorNav = observer(() => {
       onClick={() => requestStore.setSelectedState(state.state)}
     >
       {state.name}
+      <span className="badge bg-opacity-100 rounded-pill ">14</span>
     </button>
   ));
 
