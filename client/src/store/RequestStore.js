@@ -51,16 +51,25 @@ export default class RequestStore {
     return this._selectedPatient;
   }
   get requestsWithSelectedState() {
-    return this._requests.filter(
-      (el) => el["EvnDirectionStatus_SysNick"] === this._selectedState,
-    );
+    return this._requests.filter((el) => {
+      if (el["EvnDirectionStatus_SysNick"] === "DirNew") {
+        return true;
+      }
+      return el["EvnDirectionStatus_SysNick"] === this._selectedState;
+    });
   }
   get requestsLengthWithDiffStates() {
     const length = {};
     for (let state of this._states) {
-      length[state.state] = this._requests.filter(
-        (el) => el["EvnDirectionStatus_SysNick"] === state.state,
-      ).length;
+      length[state.state] = this._requests.filter((el) => {
+        if (
+          el["EvnDirectionStatus_SysNick"] === "DirNew" &&
+          state.state === "Queued"
+        ) {
+          return true;
+        }
+        return el["EvnDirectionStatus_SysNick"] === state.state;
+      }).length;
     }
     return length;
   }
