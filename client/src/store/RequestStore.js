@@ -52,7 +52,10 @@ export default class RequestStore {
   }
   get requestsWithSelectedState() {
     return this._requests.filter((el) => {
-      if (el["EvnDirectionStatus_SysNick"] === "DirNew") {
+      if (
+        el["EvnDirectionStatus_SysNick"] === "DirNew" &&
+        this._selectedState === "Queued"
+      ) {
         return true;
       }
       return el["EvnDirectionStatus_SysNick"] === this._selectedState;
