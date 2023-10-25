@@ -1,9 +1,7 @@
-const { Request } = require("../models/models");
+const { Request, CurrentPatient } = require("../models/models");
 const ApiError = require("../error/ApiError");
-const { loadWork } = require("../emias/emiasAPI");
-const { HOSPITALS } = require("../emias/constants");
 
-class RequestController {
+class PatientsController {
   async create(req, res, next) {
     try {
       const newRequest = await Request.create({ ...req.body });
@@ -14,13 +12,8 @@ class RequestController {
   }
   async getAll(req, res, next) {
     try {
-      const patients = await loadWork();
-      const formattedPatients = patients.map((patient) => {
-        patient["Lpu_Nick"] =
-          HOSPITALS[patient["Lpu_Nick"]] || patient["Lpu_Nick"];
-        return patient;
-      });
-      return res.json(formattedPatients);
+      const patients = await CurrentPatient.findAll();
+      return res.json(patients);
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
@@ -36,4 +29,4 @@ class RequestController {
   }
 }
 
-module.exports = new RequestController();
+module.exports = new PatientsController();

@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/rdkc.iml" filepath="$PROJECT_DIR$/.idea/rdkc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../redux/.idea/redux.iml" filepath="$PROJECT_DIR$/../redux/.idea/redux.iml" />
     </modules>
   </component>
 </project>
