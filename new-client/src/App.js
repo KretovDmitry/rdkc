@@ -1,13 +1,13 @@
 import React from "react";
 import "./App.css";
 import { Counter } from "./features/counter/Counter";
-import PatientsList from "./features/patients/PatientsList";
+import PatientsPage from "./features/patients/PatientsPage";
 
 function App() {
   return (
     <div className="App">
       <Counter />
-      <PatientsList />
+      <PatientsPage />
     </div>
   );
 }

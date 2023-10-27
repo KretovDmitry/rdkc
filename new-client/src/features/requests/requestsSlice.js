@@ -14,7 +14,7 @@ const requestsAdapter = createEntityAdapter({
 const initialState = requestsAdapter.getInitialState({
   loadingStatus: "idle",
   error: null,
-  selectedState: "Queued",
+  selectedStatus: "Queued",
 });
 export const fetchRequests = createAsyncThunk(
   "requests/fetchCurrent",
@@ -27,8 +27,8 @@ const requestsSlice = createSlice({
   name: "requests",
   initialState,
   reducers: {
-    setSelectedState: (state, action) => {
-      state.selectedState = action.payload;
+    setSelectedStatus: (state, action) => {
+      state.selectedStatus = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -55,7 +55,7 @@ export const {
   selectIds: selectRequestsIds,
 } = requestsAdapter.getSelectors((state) => state.requests);
 
-export const { setSelectedState } = requestsSlice.actions;
+export const { setSelectedStatus } = requestsSlice.actions;
 
 export const selectRequestsByPatient = createSelector(
   [selectAllRequests, (state, patientId) => patientId],
@@ -63,21 +63,42 @@ export const selectRequestsByPatient = createSelector(
     requests.filter((request) => request.emiasPatientId === patientId),
 );
 
-export const selectRequestSelectedState = (state) =>
-  state.requests.selectedState;
+export const selectRequestsSelectedStatus = (state) =>
+  state.requests.selectedStatus;
 
-const selectRequestsBySelectedState = createSelector(
-  [selectAllRequests, selectRequestSelectedState],
-  (requests, selectedState) => {
-    return requests.filter((request) => request.status === selectedState);
+export const selectRequestIdByPatientId = (state, patientId) => {
+  const requestFoPatient = Object.values(state.requests.entities).find(
+    (request) => request.emiasPatientId === patientId,
+  );
+  return requestFoPatient.emiasRequestNumber;
+};
+
+const selectRequestsBySelectedStatus = createSelector(
+  [selectAllRequests, selectRequestsSelectedStatus],
+  (requests, selectedStatus) => {
+    return requests.filter((request) => request.status === selectedStatus);
   },
 );
 
-export const selectPatientsIdsWithRequestsWithSelectedState = createSelector(
-  [selectRequestsBySelectedState],
-  (requestsWithSelectedState) => {
+export const selectPatientsIdsBySelectedStatus = createSelector(
+  [selectRequestsBySelectedStatus],
+  (requestsWithSelectedStatus) => {
     const patientsIds = [];
-    requestsWithSelectedState.forEach((request) => {
+    requestsWithSelectedStatus.sort((a, b) => {
+      if (
+        a.emiasCreationDate + a.emiasCreationTime >
+        b.emiasCreationDate + b.emiasCreationTime
+      ) {
+        return -1;
+      } else if (
+        a.emiasCreationDate + a.emiasCreationTime <
+        b.emiasCreationDate + b.emiasCreationTime
+      ) {
+        return 1;
+      }
+      return 0;
+    });
+    requestsWithSelectedStatus.forEach((request) => {
       if (!patientsIds.includes(request.emiasPatientId)) {
         patientsIds.push(request.emiasPatientId);
       }

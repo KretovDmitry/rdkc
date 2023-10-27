@@ -1,67 +1,41 @@
-import React, { useEffect } from "react";
+import React, { Fragment, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchPatients, selectPatientById } from "./patientsSlice";
 import RequestsList from "../requests/RequestsList";
 import {
   fetchRequests,
-  selectPatientsIdsWithRequestsWithSelectedState,
-  setSelectedState,
+  selectPatientsIdsBySelectedStatus,
+  selectRequestIdByPatientId,
+  selectRequestsSelectedStatus,
 } from "../requests/requestsSlice";
-
-const SelectRequestsStatus = () => {
-  const dispatch = useDispatch();
-
-  return (
-    <fieldset>
-      <legend>Button group</legend>
-      <input
-        type="button"
-        value="Queued"
-        onClick={() => dispatch(setSelectedState("Queued"))}
-      />
-      <input
-        type="button"
-        value="Serviced"
-        onClick={() => dispatch(setSelectedState("Serviced"))}
-      />
-      <input
-        type="button"
-        value="Canceled"
-        onClick={() => dispatch(setSelectedState("Canceled"))}
-      />
-    </fieldset>
-  );
-};
+import LpuName from "./LpuName";
+import s from "./Patients.module.css";
+import CreateButton from "../../components/Buttons/CreateButton";
 
 const Patient = ({ emiasId }) => {
   const patient = useSelector((state) => selectPatientById(state, emiasId));
+  const requestId = useSelector((state) =>
+    selectRequestIdByPatientId(state, emiasId),
+  );
+  const requestsSelectedStatus = useSelector((state) =>
+    selectRequestsSelectedStatus(state),
+  );
+
+  const createButton =
+    requestsSelectedStatus === "Queued" ? <CreateButton /> : null;
+
   return (
-    <article
-      style={{
-        maxWidth: "100%",
-        border: "1px solid orange",
-        padding: "0 10px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          textAlign: "left",
-        }}
-      >
-        <h4 style={{ margin: "0", marginBlockEnd: "5px", minWidth: "333px" }}>
-          {patient.fullName}
-        </h4>
-        <div style={{ display: "flex", minWidth: "288px" }}>
-          <div style={{}}>Дата рождения: {patient.birthDate}</div>
-          <div style={{ paddingInlineStart: "20px" }}>
-            {patient.isAdult ? "Взрослые" : "Дети"}
-          </div>
+    <article className={s.patientCard}>
+      <div className={s.patientCardHeader}>
+        <h4 className={s.patientFIO}>{patient.fullName}</h4>
+        <div className={s.patientAdditionalHeaderInfo}>
+          <div>Дата рождения: {patient.birthDate}</div>
+          <div>{patient.isAdult ? "Взрослые" : "Дети"}</div>
         </div>
       </div>
-      <RequestsList key={patient.emiasId} patientId={patient.emiasId} />
+      <LpuName requestId={requestId} />
+      <RequestsList patientId={patient.emiasId} />
+      {createButton}
     </article>
   );
 };
@@ -69,15 +43,21 @@ const Patient = ({ emiasId }) => {
 const PatientsList = () => {
   const dispatch = useDispatch();
   const patientsIds = useSelector((state) =>
-    selectPatientsIdsWithRequestsWithSelectedState(state),
+    selectPatientsIdsBySelectedStatus(state),
   );
   const error = useSelector((state) => state.patients.error);
 
-  const PatientsLoadingStatus = useSelector(
-    (state) => state.patients.loadingStatus,
-  );
   const RequestsLoadingStatus = useSelector(
     (state) => state.requests.loadingStatus,
+  );
+  useEffect(() => {
+    if (RequestsLoadingStatus === "idle") {
+      dispatch(fetchRequests());
+    }
+  }, [RequestsLoadingStatus, dispatch]);
+
+  const PatientsLoadingStatus = useSelector(
+    (state) => state.patients.loadingStatus,
   );
 
   useEffect(() => {
@@ -85,12 +65,6 @@ const PatientsList = () => {
       dispatch(fetchPatients());
     }
   }, [PatientsLoadingStatus, dispatch]);
-
-  useEffect(() => {
-    if (RequestsLoadingStatus === "idle") {
-      dispatch(fetchRequests());
-    }
-  }, [RequestsLoadingStatus, dispatch]);
 
   let content;
 
@@ -106,21 +80,10 @@ const PatientsList = () => {
   }
 
   return (
-    <section
-      style={{
-        maxWidth: 750,
-        margin: "0 auto",
-        marginBlockEnd: "50px",
-        padding: "0 10px",
-        border: "1px solid blue",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <Fragment>
       <h3>PATIENTS {patientsIds.length}</h3>
-      <SelectRequestsStatus />
       {patientsIds.length ? content : "Нет заявок"}
-    </section>
+    </Fragment>
   );
 };
 
