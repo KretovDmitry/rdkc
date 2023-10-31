@@ -47,7 +47,7 @@
   background: #1ECD97;
 }
 .validate:after {
-  content: "\2713";
+  content: "Создан";
 }
 
 @keyframes rotating {

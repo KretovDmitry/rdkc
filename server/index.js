@@ -20,10 +20,10 @@ const start = async () => {
   try {
     await sequelize.authenticate();
     console.log("Successfully connected to DB");
-    await sequelize.sync();
+    await sequelize.sync({ force: true });
     app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-    // setImmediate(main);
-    // emiasAPI();
+    setImmediate(main);
+    emiasAPI();
   } catch (e) {
     console.log("Failed connecting to DB", e);
   }

@@ -9,9 +9,6 @@ const CreateButton = () => {
     setButtonClass("onClick");
     setTimeout(() => {
       setButtonClass("validate");
-      setTimeout(() => {
-        setButtonClass(null);
-      }, 1250);
     }, 2250);
   };
   return (

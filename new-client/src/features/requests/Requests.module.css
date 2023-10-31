@@ -1,5 +1,8 @@
 .selectRequestsStatus {
   margin: 0;
+  border: 1px solid #D0D0D0;
+  box-shadow: 0 0 8px #D0D0D0;
+  border-radius: 5px;
 }
 
 .requestsList {
@@ -9,6 +12,7 @@
 
 .requestsList > li {
   display: block;
+  width: fit-content;
 }
 
 .requestsList > li:not(:last-child) {
@@ -21,12 +25,16 @@
   justify-content: flex-start;
   border: 1px solid #D0D0D0;
   border-radius: 20px;
+  padding-inline-start: 10px;
+  padding-inline-end: 10px;
 }
 
 .requestsList > li > div > * {
-  padding-inline-start: 10px;
   height: 20px;
   line-height: 20px;
   text-align: center;
 }
 
+.requestsList > li > div > *:not(:first-child) {
+  padding-inline-start: 10px;
+}

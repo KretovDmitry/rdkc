@@ -10,10 +10,14 @@ import s from "./Requests.module.css";
 const Request = ({ requestId }) => {
   const request = useSelector((state) => selectRequestById(state, requestId));
   const tmk = request.tmk ? <div>TMK</div> : null;
+  const childrenCenter = request.childrenCenter ? (
+    <div>Детский центр</div>
+  ) : null;
   return (
     <li>
       <div>
         {tmk}
+        {childrenCenter}
         <div>{request.emiasCreationDate}</div>
         <div>{request.emiasCreationTime}</div>
         <div>{request.diagnosisCode}</div>

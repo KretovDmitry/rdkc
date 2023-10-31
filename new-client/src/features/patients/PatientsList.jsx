@@ -81,7 +81,9 @@ const PatientsList = () => {
 
   return (
     <Fragment>
-      <h3>PATIENTS {patientsIds.length}</h3>
+      <h3 className={s.patientsQuantity}>
+        Количество пациентов: {patientsIds.length}
+      </h3>
       {patientsIds.length ? content : "Нет заявок"}
     </Fragment>
   );
