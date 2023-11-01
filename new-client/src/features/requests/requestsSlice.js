@@ -67,10 +67,10 @@ export const selectRequestsSelectedStatus = (state) =>
   state.requests.selectedStatus;
 
 export const selectRequestIdByPatientId = (state, patientId) => {
-  const requestFoPatient = Object.values(state.requests.entities).find(
+  const requestsForPatient = Object.values(state.requests.entities).find(
     (request) => request.emiasPatientId === patientId,
   );
-  return requestFoPatient.emiasRequestNumber;
+  return requestsForPatient.emiasRequestNumber;
 };
 
 const selectRequestsBySelectedStatus = createSelector(

@@ -11,6 +11,8 @@ import {
 import LpuName from "./LpuName";
 import s from "./Patients.module.css";
 import CreateButton from "../../components/Buttons/CreateButton";
+import { fetchReanimationPeriods } from "../reanimationPeriods/reanimationPeriodsSlice";
+import ReanimationPeriod from "../reanimationPeriods/ReanimationPeriod";
 
 const Patient = ({ emiasId }) => {
   const patient = useSelector((state) => selectPatientById(state, emiasId));
@@ -20,10 +22,10 @@ const Patient = ({ emiasId }) => {
   const requestsSelectedStatus = useSelector((state) =>
     selectRequestsSelectedStatus(state),
   );
-
   const createButton =
-    requestsSelectedStatus === "Queued" ? <CreateButton /> : null;
-
+    requestsSelectedStatus === "Queued" ? (
+      <CreateButton patientId={emiasId} />
+    ) : null;
   return (
     <article className={s.patientCard}>
       <div className={s.patientCardHeader}>
@@ -33,7 +35,10 @@ const Patient = ({ emiasId }) => {
           <div>{patient.isAdult ? "Взрослые" : "Дети"}</div>
         </div>
       </div>
-      <LpuName requestId={requestId} />
+      <div className={s.patientCardHeader}>
+        <LpuName requestId={requestId} />
+        <ReanimationPeriod requestId={requestId} patientId={emiasId} />
+      </div>
       <RequestsList patientId={patient.emiasId} />
       {createButton}
     </article>
@@ -55,6 +60,15 @@ const PatientsList = () => {
       dispatch(fetchRequests());
     }
   }, [RequestsLoadingStatus, dispatch]);
+
+  const ReanimationPeriodsLoadingStatus = useSelector(
+    (state) => state.reanimationPeriods.loadingStatus,
+  );
+  useEffect(() => {
+    if (ReanimationPeriodsLoadingStatus === "idle") {
+      dispatch(fetchReanimationPeriods());
+    }
+  }, [ReanimationPeriodsLoadingStatus, dispatch]);
 
   const PatientsLoadingStatus = useSelector(
     (state) => state.patients.loadingStatus,

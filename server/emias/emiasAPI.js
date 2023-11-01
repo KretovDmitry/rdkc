@@ -328,7 +328,7 @@ async function main() {
   }
 }
 
-const minutes = 5;
+const minutes = 10;
 
 const emiasAPI = () => {
   let counter = 1;

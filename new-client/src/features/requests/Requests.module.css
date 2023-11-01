@@ -5,6 +5,10 @@
   border-radius: 5px;
 }
 
+.selectRequestsStatusLegend {
+  font-weight: 700;
+}
+
 .requestsList {
   list-style: none;
   padding: 0;

@@ -1,11 +1,38 @@
-const { Request, CurrentPatient } = require("../models/models");
+const { Patient, CurrentPatient } = require("../models/models");
 const ApiError = require("../error/ApiError");
+const { makeDirectory } = require("../fs/mkdir");
+const rootDirectory = "Z:\\Пациенты все\\Пациенты 2023\\13 Тест";
 
 class PatientsController {
   async create(req, res, next) {
     try {
-      const newRequest = await Request.create({ ...req.body });
-      return res.json(newRequest);
+      const currentPatient = await CurrentPatient.findOne({
+        where: { emiasId: req.body.data },
+        attributes: {
+          exclude: ["isDead", "deadDate", "deadTime", "createdAt", "updatedAt"],
+        },
+      });
+      console.log(currentPatient);
+      const newPatient = await Patient.create({
+        emiasId: currentPatient.emiasId,
+        lastName: currentPatient.lastName,
+        firstName: currentPatient.firstName,
+        middleName: currentPatient.middleName,
+        birthDate: currentPatient.birthDate,
+        age: currentPatient.age,
+        isAdult: currentPatient.isAdult,
+        gender: currentPatient.gender,
+        isIdentified: currentPatient.isIdentified,
+        snils: currentPatient.snils,
+        documentTypeName: currentPatient.documentTypeName,
+        documentSer: currentPatient.documentSer,
+        documentNum: currentPatient.documentNum,
+        omsNumber: currentPatient.omsNumber,
+        omsCompany: currentPatient.omsCompany,
+      });
+      const dirName = newPatient.fullName;
+      await makeDirectory(rootDirectory, dirName);
+      return res.json({ data: newPatient, success: true });
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
