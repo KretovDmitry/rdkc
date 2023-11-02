@@ -1,38 +1,27 @@
 const { Patient, CurrentPatient } = require("../models/models");
 const ApiError = require("../error/ApiError");
-const { makeDirectory } = require("../fs/mkdir");
+const { makeUniqueDirectory } = require("../fs/dirAPI");
 const rootDirectory = "Z:\\Пациенты все\\Пациенты 2023\\13 Тест";
 
 class PatientsController {
   async create(req, res, next) {
     try {
-      const currentPatient = await CurrentPatient.findOne({
-        where: { emiasId: req.body.data },
+      const { dataValues } = await CurrentPatient.findOne({
+        where: { emiasId: req.body.emiasPatientId },
         attributes: {
-          exclude: ["isDead", "deadDate", "deadTime", "createdAt", "updatedAt"],
+          exclude: ["createdAt", "updatedAt"],
         },
       });
-      console.log(currentPatient);
+      delete dataValues.id;
       const newPatient = await Patient.create({
-        emiasId: currentPatient.emiasId,
-        lastName: currentPatient.lastName,
-        firstName: currentPatient.firstName,
-        middleName: currentPatient.middleName,
-        birthDate: currentPatient.birthDate,
-        age: currentPatient.age,
-        isAdult: currentPatient.isAdult,
-        gender: currentPatient.gender,
-        isIdentified: currentPatient.isIdentified,
-        snils: currentPatient.snils,
-        documentTypeName: currentPatient.documentTypeName,
-        documentSer: currentPatient.documentSer,
-        documentNum: currentPatient.documentNum,
-        omsNumber: currentPatient.omsNumber,
-        omsCompany: currentPatient.omsCompany,
+        ...dataValues,
       });
-      const dirName = newPatient.fullName;
-      await makeDirectory(rootDirectory, dirName);
-      return res.json({ data: newPatient, success: true });
+      const patientsDirName = await makeUniqueDirectory(
+        rootDirectory,
+        newPatient.shortName,
+      );
+      await makeUniqueDirectory(patientsDirName, "Ответы специалистов");
+      return res.json({ newPatient, success: true });
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }

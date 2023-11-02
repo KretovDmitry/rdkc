@@ -69,14 +69,14 @@ async function fetchEmiasData() {
     }
     console.log("Cookie:", emias.defaults.headers.common["Cookie"]);
     const { patients, requests } = await getAllPatients(patientsPayload);
-    const reanimationPeriod = {};
+    const reanimationPeriods = {};
     for (const id of Object.keys(patients)) {
       const patient = await loadPatientData(id);
       patients[id] = { ...patients[id], ...patient };
       try {
         const { patientData, reanPeriod } = await getPatientEmkData(id);
         if (reanPeriod.hasOwnProperty("emiasId")) {
-          reanimationPeriod[reanPeriod.emiasId] = reanPeriod;
+          reanimationPeriods[reanPeriod.emiasId] = reanPeriod;
         }
         const requestIds = patients[id].requestIds;
         for (const requestId of requestIds) {
@@ -86,7 +86,7 @@ async function fetchEmiasData() {
         console.log(e);
       }
     }
-    return { patients, requests, reanimationPeriod };
+    return { patients, requests, reanimationPeriods };
   } catch (e) {
     console.log(e);
   }
@@ -297,7 +297,7 @@ async function getPatientEmkData(id) {
   return { patientData, reanPeriod };
 }
 async function main() {
-  const { patients, requests, reanimationPeriod } = await fetchEmiasData();
+  const { patients, requests, reanimationPeriods } = await fetchEmiasData();
   await CurrentPatient.truncate();
   for (const patient of Object.values(patients)) {
     delete patient.requestIds;
@@ -318,7 +318,7 @@ async function main() {
     );
   }
   await CurrentReanimationPeriod.truncate();
-  for (const period of Object.values(reanimationPeriod)) {
+  for (const period of Object.values(reanimationPeriods)) {
     await CurrentReanimationPeriod.create(period);
     console.log(
       "----------------------Reanimation Period with emiasId:",

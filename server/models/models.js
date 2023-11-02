@@ -263,7 +263,11 @@ const CurrentReanimationPeriod = sequelize.define(
   { underscored: true },
 );
 
-Patient.hasMany(Request, { foreignKey: { allowNull: false } });
+Patient.hasMany(Request, {
+  foreignKey: {
+    allowNull: false,
+  },
+});
 Request.belongsTo(Patient);
 
 User.hasMany(Request, { foreignKey: { allowNull: false } });
