@@ -1,10 +1,10 @@
 require("dotenv").config();
 const express = require("express");
 const sequelize = require("./db");
-const models = require("./models/models");
 const cors = require("cors");
 const router = require("./routes/index");
 const errorHandler = require("./middleware/ErrorHandlingMiddleware");
+const { main, emiasAPI } = require("./emias/emiasAPI");
 
 const PORT = process.env.PORT || 5000;
 
@@ -20,8 +20,10 @@ const start = async () => {
   try {
     await sequelize.authenticate();
     console.log("Successfully connected to DB");
-    await sequelize.sync();
+    await sequelize.sync({ force: true });
     app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+    setImmediate(main);
+    emiasAPI();
   } catch (e) {
     console.log("Failed connecting to DB", e);
   }

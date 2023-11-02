@@ -11,28 +11,22 @@ class ScheduleController {
       next(ApiError.badRequest(e.message));
     }
   }
-  async getBetween(req, res, next) {
-    const { startDate, endDate } = req.params;
+  async getByDate(req, res, next) {
+    const { startDate, endDate } = req.query;
     try {
       const schedule = await Schedule.findAll({
         where: {
-          date: {
-            [Op.between]: [startDate, endDate],
+          startDate: {
+            [Op.and]: {
+              [Op.gte]: startDate,
+              [Op.lte]: endDate,
+            },
           },
         },
       });
       return res.json(schedule);
     } catch (e) {
-      return next(ApiError.badRequest(e.message));
-    }
-  }
-  async getExact(req, res, next) {
-    const { date } = req.params;
-    try {
-      const schedule = await Schedule.findAll({ where: { date } });
-      return res.json(schedule);
-    } catch (e) {
-      return next(ApiError.badRequest(e.message));
+      next(ApiError.badRequest(e.message));
     }
   }
 }

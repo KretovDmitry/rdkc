@@ -1,0 +1,62 @@
+
+
+.button {
+  outline: none;
+  height: 1.5rem;
+  text-align: center;
+  width: 4.875rem;
+  border-radius: 1.5rem;
+  background: #fafbff;
+  border: 2px solid var(--create-btn-color);
+  color: var(--create-btn-color);
+  text-shadow: 0 0;
+  letter-spacing: 1px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-block-end: 5px;
+}
+.button:hover {
+  color: white;
+  background: var(--create-btn-color);
+}
+.button:active {
+  letter-spacing: 2px;
+}
+.button:after {
+  content: "Создать";
+}
+
+.onClick {
+  width: 1.5rem;
+  border-color: #bbbbbb;
+  border-width: 3px;
+  font-size: 0;
+  border-left-color: var(--create-btn-color);
+  animation: rotating 2s 0.25s linear infinite;
+}
+.onClick:after {
+  content: "";
+}
+.onClick:hover {
+  color: var(--create-btn-color);
+  background: white;
+}
+
+.validate {
+  font-size: 13px;
+  color: white;
+  background: var(--create-btn-color);
+}
+.validate:after {
+  content: "Создан";
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
