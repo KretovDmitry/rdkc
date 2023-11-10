@@ -1,7 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Fredoka&display=swap');
 
 :root {
-  --redux-color: #764abc;
+  --bg-color: #fafbff;
+  --accent-color: #70caf0;
   --create-btn-color: #1ECD97;
 }
 
@@ -10,11 +11,44 @@
 }
 
 body {
+  height: 100vh;
   margin: 0;
   color: #4F5155;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #fafbff;
+  background-color: var(--bg-color);
+  overflow-y: scroll;
+  scrollbar-color: #4e4e4e #c0c0c0 ;
+  -ms-overflow-style: auto;
+  scrollbar-width: thin;
+  @supports (scrollbar-gutter: stable) {
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: #6e6e6e;
+  border-radius: 8px;
+}
+
+body::-webkit-scrollbar-track {
+  background-color: #c0c0c0;
+}
+
+body::-webkit-scrollbar-corner {
+  background-color: #c0c0c0;
+}
+
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    scroll-behavior: smooth;
+  }
 }
 
 code {

@@ -1,6 +1,6 @@
 import { client } from "./index";
 
 export const fetchCurrentRequests = async () => {
-  const { data } = await client.get("api/requests");
+  const { data } = await client.get("requests");
   return data;
 };

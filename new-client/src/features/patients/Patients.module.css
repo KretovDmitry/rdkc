@@ -1,16 +1,17 @@
 .patientsList {
   max-width: 750px;
-  min-width: 550px;
+  min-width: 450px;
   margin: 0 auto;
-  margin-block-end: 50px;
-  padding: 0 10px;
-  border: 1px solid blue;
+  padding: 10px;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
-.patientsQuantity {
-  padding-inline-start: 10px;
+.quantity {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
 }
 
 .patientCard {

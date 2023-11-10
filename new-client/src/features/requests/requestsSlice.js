@@ -73,7 +73,7 @@ export const selectRequestIdByPatientId = (state, patientId) => {
   return requestsForPatient.emiasRequestNumber;
 };
 
-const selectRequestsBySelectedStatus = createSelector(
+export const selectRequestsBySelectedStatus = createSelector(
   [selectAllRequests, selectRequestsSelectedStatus],
   (requests, selectedStatus) => {
     return requests.filter((request) => request.status === selectedStatus);
