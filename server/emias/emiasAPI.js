@@ -297,38 +297,42 @@ async function getPatientEmkData(id) {
   return { patientData, reanPeriod };
 }
 async function main() {
-  const { patients, requests, reanimationPeriods } = await fetchEmiasData();
-  await CurrentPatient.truncate();
-  for (const patient of Object.values(patients)) {
-    delete patient.requestIds;
-    await CurrentPatient.create(patient);
-    console.log(
-      "----------------------Patient with FIO:",
-      patient.fio,
-      "was saved to the database----------------------",
-    );
-  }
-  await CurrentRequest.truncate();
-  for (const request of Object.values(requests)) {
-    await CurrentRequest.create(request);
-    console.log(
-      "----------------------Request with emiasRequestNumber:",
-      request.emiasRequestNumber,
-      "was saved to the database----------------------",
-    );
-  }
-  await CurrentReanimationPeriod.truncate();
-  for (const period of Object.values(reanimationPeriods)) {
-    await CurrentReanimationPeriod.create(period);
-    console.log(
-      "----------------------Reanimation Period with emiasId:",
-      period.emiasId,
-      "was saved to the database----------------------",
-    );
+  try {
+    const { patients, requests, reanimationPeriods } = await fetchEmiasData();
+    await CurrentPatient.truncate();
+    for (const patient of Object.values(patients)) {
+      delete patient.requestIds;
+      await CurrentPatient.create(patient);
+      console.log(
+        "----------------------Patient with FIO:",
+        patient.fio,
+        "was saved to the database----------------------",
+      );
+    }
+    await CurrentRequest.truncate();
+    for (const request of Object.values(requests)) {
+      await CurrentRequest.create(request);
+      console.log(
+        "----------------------Request with emiasRequestNumber:",
+        request.emiasRequestNumber,
+        "was saved to the database----------------------",
+      );
+    }
+    await CurrentReanimationPeriod.truncate();
+    for (const period of Object.values(reanimationPeriods)) {
+      await CurrentReanimationPeriod.create(period);
+      console.log(
+        "----------------------Reanimation Period with emiasId:",
+        period.emiasId,
+        "was saved to the database----------------------",
+      );
+    }
+  } catch (e) {
+    console.error(e);
   }
 }
 
-const minutes = 10;
+const minutes = 5;
 
 const emiasAPI = () => {
   let counter = 1;

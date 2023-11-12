@@ -1,0 +1,15 @@
+.main {
+  overflow-y: scroll;
+  scrollbar-color: #4e4e4e #c0c0c0 ;
+  scrollbar-width: thin;
+  @supports (scrollbar-gutter: stable) {
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .main {
+    scroll-behavior: smooth;
+  }
+}
