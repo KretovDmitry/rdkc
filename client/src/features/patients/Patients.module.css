@@ -1,0 +1,50 @@
+.patientsList {
+  max-width: 750px;
+  min-width: 450px;
+  margin: 0 auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.quantity {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.patientCard {
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid #D0D0D0;
+  box-shadow: 0 0 8px #D0D0D0;
+  border-radius: 5px;
+}
+
+.patientCard:not(:last-child) {
+  margin-block-end: 20px;
+}
+
+.patientCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 5px 0;
+}
+
+.patientFIO {
+  margin: 0;
+  min-width: 333px;
+}
+
+.patientAdditionalHeaderInfo {
+  width: 17rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.lpuName {
+  padding: 5px 0;
+}

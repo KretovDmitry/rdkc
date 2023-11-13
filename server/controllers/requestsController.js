@@ -1,7 +1,7 @@
 const { Request, CurrentRequest } = require("../models/models");
 const ApiError = require("../error/ApiError");
 
-class PatientsController {
+class RequestsController {
   async create(req, res, next) {
     try {
       const newRequest = await Request.create({ ...req.body });
@@ -29,4 +29,4 @@ class PatientsController {
   }
 }
 
-module.exports = new PatientsController();
+module.exports = new RequestsController();

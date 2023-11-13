@@ -34,8 +34,10 @@ function createFolder(dirName) {
     folder = join(testPath, dirName);
   }
   if (existsSync(folder)) {
+    console.log(folder, "exists");
     const folderWithDate = join(testPath, dirName + " " + today);
     if (existsSync(folderWithDate)) {
+      console.log(folderWithDate, "exists");
       return join(
         testPath,
         dirName + " " + today + " " + Math.round(Math.random() * 1_000_000),
