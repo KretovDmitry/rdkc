@@ -3,7 +3,7 @@ import {
   createEntityAdapter,
   createSlice,
 } from "@reduxjs/toolkit";
-import { fetchCurrentPatients } from "../../http/patientsAPI";
+import { fetchCurrentPatients } from "../../app/api/patientsAPI";
 
 const patientsAdapter = createEntityAdapter({
   selectId: (patient) => patient.emiasId,

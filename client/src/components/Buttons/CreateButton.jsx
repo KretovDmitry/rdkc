@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import s from "./CreateButton.module.css";
-import { createPatient } from "../../http/patientsAPI";
+import { createPatient } from "../../app/api/patientsAPI";
 
-const CreateButton = ({ patientId }) => {
+const CreateButton = ({ patientId, isRean }) => {
   const [buttonClass, setButtonClass] = useState(null);
   const [disabled, setDisabled] = useState(false);
   const handleToggle = async () => {

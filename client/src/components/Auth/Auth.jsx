@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import s from "./Auth.module.css";
-import { login } from "../../http/userAPI";
+import { login } from "../../app/api/userAPI";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { selectPatientById } from "./patientsSlice";
 import {
@@ -19,9 +19,14 @@ const PatientCard = ({ emiasId }) => {
   const requestsSelectedStatus = useSelector((state) =>
     selectRequestsSelectedStatus(state),
   );
+  const [isRean, setIsRean] = useState(null);
+  const handleIsRean = (value) => {
+    console.log(value);
+    setIsRean(value !== "stac");
+  };
   const createButton =
     requestsSelectedStatus === "Queued" ? (
-      <CreateButton patientId={emiasId} />
+      <CreateButton patientId={emiasId} isRean={isRean} />
     ) : null;
   return (
     <article className={s.patientCard}>
@@ -34,7 +39,11 @@ const PatientCard = ({ emiasId }) => {
       </div>
       <div className={s.patientCardHeader}>
         <LpuName requestId={requestId} />
-        <ReanimationPeriod requestId={requestId} patientId={emiasId} />
+        <ReanimationPeriod
+          patientId={emiasId}
+          requestsSelectedStatus={requestsSelectedStatus}
+          handleIsRean={handleIsRean}
+        />
       </div>
       <RequestsList patientId={patient.emiasId} />
       {createButton}

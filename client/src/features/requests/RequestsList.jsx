@@ -9,9 +9,9 @@ import s from "./Requests.module.css";
 
 const Request = ({ requestId }) => {
   const request = useSelector((state) => selectRequestById(state, requestId));
-  const tmk = request.tmk ? <div>TMK</div> : null;
+  const tmk = request.tmk ? <div className={s.accent}>TMK</div> : null;
   const childrenCenter = request.childrenCenter ? (
-    <div>Детский центр</div>
+    <div className={s.accent}>Детский центр</div>
   ) : null;
   return (
     <li>

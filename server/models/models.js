@@ -240,11 +240,15 @@ const ReanimationPeriod = sequelize.define(
   {
     emiasId: { type: DataTypes.STRING, primaryKey: true },
     emiasPatientId: DataTypes.STRING,
+    objectValue: DataTypes.STRING,
     startDate: DataTypes.STRING,
     startTime: DataTypes.STRING,
     endDate: DataTypes.STRING,
     endTime: DataTypes.STRING,
     result: DataTypes.STRING,
+    isRean: DataTypes.BOOLEAN,
+    hasReanPeriod: DataTypes.BOOLEAN,
+    error: DataTypes.BOOLEAN,
   },
   { underscored: true },
 );
@@ -252,13 +256,17 @@ const ReanimationPeriod = sequelize.define(
 const CurrentReanimationPeriod = sequelize.define(
   "CurrentReanimationPeriod",
   {
-    emiasId: { type: DataTypes.STRING, primaryKey: true },
+    objectValue: { type: DataTypes.STRING, primaryKey: true },
+    emiasId: DataTypes.STRING,
     emiasPatientId: DataTypes.STRING,
     startDate: DataTypes.STRING,
     startTime: DataTypes.STRING,
     endDate: DataTypes.STRING,
     endTime: DataTypes.STRING,
     result: DataTypes.STRING,
+    isRean: DataTypes.BOOLEAN,
+    hasReanPeriod: DataTypes.BOOLEAN,
+    error: DataTypes.BOOLEAN,
   },
   { underscored: true },
 );

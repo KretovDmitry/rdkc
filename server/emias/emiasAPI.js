@@ -74,13 +74,11 @@ async function fetchEmiasData() {
       const patient = await loadPatientData(id);
       patients[id] = { ...patients[id], ...patient };
       try {
-        const { patientData, reanPeriod } = await getPatientEmkData(id);
-        if (reanPeriod.hasOwnProperty("emiasId")) {
-          reanimationPeriods[reanPeriod.emiasId] = reanPeriod;
-        }
-        const requestIds = patients[id].requestIds;
-        for (const requestId of requestIds) {
-          requests[requestId].isRean = patientData.isRean;
+        const { requestData, reanPeriod } = await getPatientEmkData(id);
+        reanimationPeriods[id] = reanPeriod;
+        const requestsIds = patients[id].requestsIds;
+        for (const requestId of requestsIds) {
+          requests[requestId].isRean = requestData.isRean;
         }
       } catch (e) {
         console.log(e);
@@ -185,10 +183,12 @@ async function getAllPatients(payload) {
       patients[patient["Person_id"]] = {
         emiasId: patient["Person_id"],
         fio: capitalize(patient["Person_FIO"]),
-        requestIds: [],
+        requestsIds: [],
       };
     }
-    patients[patient["Person_id"]].requestIds.push(patient["EvnDirection_Num"]);
+    patients[patient["Person_id"]].requestsIds.push(
+      patient["EvnDirection_Num"],
+    );
 
     const icdCode = patient["Diag_FullName"].slice(
       0,
@@ -218,7 +218,6 @@ async function getAllPatients(payload) {
 }
 
 async function getPatientObjectValue(id) {
-  console.log("getPatientObjectValue");
   const response = await emias.post(
     "https://hospital.emias.mosreg.ru/?c=EMK&m=getPersonEmkData",
     {
@@ -252,56 +251,72 @@ async function getPatientObjectValue(id) {
 async function getPatientEmkData(id) {
   const objectValue = await getPatientObjectValue(id);
   console.log("getPatientEmkData");
-  const response = await emias.post(
-    "https://hospital.emias.mosreg.ru/?c=Template&m=getEvnFormEvnPS",
-    {
-      user_MedStaffFact_id: 37217,
-      object: "EvnPS",
-      object_id: "EvnPS_id",
-      object_value: objectValue,
-      archiveRecord: 0,
-      ARMType: "remoteconsultcenter",
-      from_MZ: 1,
-      from_MSE: 1,
-    },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    },
-  );
-  const patientData = {};
+  const requestData = {};
   const reanPeriod = {};
-  const evnSection = response.data.map.EvnPS.item[0].children.EvnSection.item;
-  const hasReanPeriod =
-    evnSection[evnSection.length - 1].children.EvnReanimatPeriod.hasOwnProperty(
-      "item",
+  try {
+    const response = await emias.post(
+      "https://hospital.emias.mosreg.ru/?c=Template&m=getEvnFormEvnPS",
+      {
+        user_MedStaffFact_id: 37217,
+        object: "EvnPS",
+        object_id: "EvnPS_id",
+        object_value: objectValue,
+        archiveRecord: 0,
+        ARMType: "remoteconsultcenter",
+        from_MZ: 1,
+        from_MSE: 1,
+      },
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        proxy: false,
+      },
     );
-  if (hasReanPeriod) {
-    const lastReanPeriod =
-      evnSection[evnSection.length - 1].children.EvnReanimatPeriod.item[0].data;
-    patientData.isRean = !lastReanPeriod.ReanimResultType_Name;
-    reanPeriod.emiasId = lastReanPeriod.EvnReanimatPeriod_id;
+
+    const evnSection = response.data.map.EvnPS.item[0].children.EvnSection.item;
+    const hasReanPeriod =
+      evnSection[
+        evnSection.length - 1
+      ].children.EvnReanimatPeriod.hasOwnProperty("item");
+    if (hasReanPeriod) {
+      const lastReanPeriod =
+        evnSection[evnSection.length - 1].children.EvnReanimatPeriod.item[0]
+          .data;
+      requestData.isRean = !lastReanPeriod.ReanimResultType_Name;
+      reanPeriod.emiasId = lastReanPeriod.EvnReanimatPeriod_id;
+      reanPeriod.emiasPatientId = id;
+      reanPeriod.startDate = lastReanPeriod.EvnReanimatPeriod_setDate;
+      reanPeriod.startTime = lastReanPeriod.EvnReanimatPeriod_setTime;
+      reanPeriod.endDate = lastReanPeriod.EvnReanimatPeriod_disDate;
+      reanPeriod.endTime = lastReanPeriod.EvnReanimatPeriod_disTime;
+      reanPeriod.result = lastReanPeriod.ReanimResultType_Name;
+      reanPeriod.isRean = !lastReanPeriod.ReanimResultType_Name;
+      reanPeriod.hasReanPeriod = true;
+    } else {
+      requestData.isRean = false;
+      reanPeriod.emiasPatientId = id;
+      reanPeriod.hasReanPeriod = false;
+    }
+    reanPeriod.error = false;
+    reanPeriod.objectValue = objectValue;
+    console.log(requestData);
+    console.log(reanPeriod);
+    return { requestData, reanPeriod };
+  } catch (e) {
+    console.error("getPatientEmkData ERROR:", e?.code || e);
     reanPeriod.emiasPatientId = id;
-    reanPeriod.startDate = lastReanPeriod.EvnReanimatPeriod_setDate;
-    reanPeriod.startTime = lastReanPeriod.EvnReanimatPeriod_setTime;
-    reanPeriod.endDate = lastReanPeriod.EvnReanimatPeriod_disDate;
-    reanPeriod.endTime = lastReanPeriod.EvnReanimatPeriod_disTime;
-    reanPeriod.result = lastReanPeriod.ReanimResultType_Name;
-  } else {
-    patientData.isRean = false;
-    console.log("Стационар");
+    reanPeriod.objectValue = objectValue;
+    reanPeriod.error = true;
+    return { requestData, reanPeriod };
   }
-  console.log(patientData);
-  console.log(reanPeriod);
-  return { patientData, reanPeriod };
 }
 async function main() {
   try {
     const { patients, requests, reanimationPeriods } = await fetchEmiasData();
     await CurrentPatient.truncate();
     for (const patient of Object.values(patients)) {
-      delete patient.requestIds;
+      delete patient.requestsIds;
       await CurrentPatient.create(patient);
       console.log(
         "----------------------Patient with FIO:",
@@ -332,7 +347,7 @@ async function main() {
   }
 }
 
-const minutes = 5;
+const minutes = 15;
 
 const emiasAPI = () => {
   let counter = 1;

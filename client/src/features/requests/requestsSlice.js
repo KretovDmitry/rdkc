@@ -4,7 +4,7 @@ import {
   createSelector,
   createSlice,
 } from "@reduxjs/toolkit";
-import { fetchCurrentRequests } from "../../http/requestsAPI";
+import { fetchCurrentRequests } from "../../app/api/requestsAPI";
 
 const requestsAdapter = createEntityAdapter({
   selectId: (request) => request.emiasRequestNumber,

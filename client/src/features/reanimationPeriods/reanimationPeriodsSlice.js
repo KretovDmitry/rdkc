@@ -3,7 +3,7 @@ import {
   createEntityAdapter,
   createSlice,
 } from "@reduxjs/toolkit";
-import { fetchCurrentReanimationPeriods } from "../../http/reanimationPeriodsAPI";
+import { fetchCurrentReanimationPeriods } from "../../app/api/reanimationPeriodsAPI";
 
 const reanimationPeriodsAdapter = createEntityAdapter({
   selectId: (period) => period.emiasPatientId,

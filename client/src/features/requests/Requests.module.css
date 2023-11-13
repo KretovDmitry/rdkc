@@ -42,3 +42,7 @@
 .requestsList > li > div > *:not(:first-child) {
   padding-inline-start: 10px;
 }
+
+.accent {
+  color: var(--accent-color);
+}

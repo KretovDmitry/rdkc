@@ -3,7 +3,7 @@ import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setUser, setUserIsAuth } from "./features/users/usersSlice";
-import { check } from "./http/userAPI";
+import { check } from "./app/api/userAPI";
 import { Spinner } from "./components/Spinner/Spinner";
 import PrivateRoute from "./components/Auth/PrivateRoute";
 import Auth from "./components/Auth/Auth";

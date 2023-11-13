@@ -113,3 +113,12 @@
   grid-template-columns: 20px 70px 35px;
   text-align: right;
 }
+
+.radioFieldset {
+  border: 1px solid #D0D0D0;
+  /*box-shadow: 0 0 1px #D0D0D0;*/
+  border-radius: 5px;}
+
+.radioFieldset * {
+  cursor: pointer;
+}
