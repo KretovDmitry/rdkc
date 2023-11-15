@@ -2,12 +2,13 @@
 
 :root {
   --bg-color: #fafbff;
-  --accent-color: #70caf0;
+  --accent-color: #3498db;
   --create-btn-color: #1ECD97;
 }
 
 * {
   box-sizing: border-box;
+  caret-color: transparent;
 }
 
 body {

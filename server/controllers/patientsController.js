@@ -6,37 +6,35 @@ const { createWord } = require("../fs/docx");
 class PatientsController {
   async create(req, res, next) {
     try {
-      const isExists = await Patient.findOne({
+      const doesExist = await Patient.findOne({
         where: { emiasId: req.body.emiasPatientId },
       });
-      if (isExists)
+      if (doesExist)
         return res.json({
+          id: doesExist.id,
           existingPatient: {
-            fullName: isExists.fullName,
-            shortName: isExists.shortName,
-            emiasId: isExists.emiasId,
-            id: isExists.id,
-            updatedAt: isExists.updatedAt,
-            createdAt: isExists.createdAt,
+            fullName: doesExist.fullName,
+            emiasId: doesExist.emiasId,
+            id: doesExist.id,
+            updatedAt: doesExist.updatedAt,
+            createdAt: doesExist.createdAt,
           },
-          success: true,
         });
       const { dataValues } = await CurrentPatient.findOne({
         where: { emiasId: req.body.emiasPatientId },
         attributes: {
-          exclude: ["createdAt", "updatedAt"],
+          exclude: ["id", "createdAt", "updatedAt"],
         },
       });
-      delete dataValues.id;
       const newPatient = await Patient.create({
         ...dataValues,
       });
       const newPatientFolder = await makeUniqueDirectory(newPatient.shortName);
       createWord(newPatientFolder, newPatient.shortName);
       return res.json({
+        id: newPatient.id,
         createdPatient: {
           fullName: newPatient.fullName,
-          shortName: newPatient.shortName,
           emiasId: newPatient.emiasId,
           id: newPatient.id,
           updatedAt: newPatient.updatedAt,

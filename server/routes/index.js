@@ -8,7 +8,7 @@ const staffRouter = require("./staffRouter");
 const userRouter = require("../routes/userRouter");
 
 router.use("/patients", patientsRouter);
-router.use("/reanimationPeriods", reanimationPeriodsRouter);
+router.use("/reanimation", reanimationPeriodsRouter);
 router.use("/requests", requestsRouter);
 router.use("/schedule", scheduleRouter);
 router.use("/staff", staffRouter);

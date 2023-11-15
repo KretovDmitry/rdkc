@@ -19,7 +19,7 @@ const PatientCard = ({ emiasId }) => {
   const requestsSelectedStatus = useSelector((state) =>
     selectRequestsSelectedStatus(state),
   );
-  const [isRean, setIsRean] = useState(null);
+  const [isRean, setIsRean] = useState(true);
   const handleIsRean = (value) => {
     console.log(value);
     setIsRean(value !== "stac");
@@ -34,7 +34,11 @@ const PatientCard = ({ emiasId }) => {
         <h4 className={s.patientFIO}>{patient.fullName}</h4>
         <div className={s.patientAdditionalHeaderInfo}>
           <div>Дата рождения: {patient.birthDate}</div>
-          <div>{patient.isAdult ? "Взрослые" : "Дети"}</div>
+          {patient.isAdult ? (
+            <div>Взрослые</div>
+          ) : (
+            <div className={s.accent}>Дети</div>
+          )}
         </div>
       </div>
       <div className={s.patientCardHeader}>

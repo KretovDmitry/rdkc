@@ -3,9 +3,46 @@ const ApiError = require("../error/ApiError");
 
 class RequestsController {
   async create(req, res, next) {
+    const {
+      emiasPatientId,
+      isRean,
+      patientId,
+      userId,
+      staffId,
+      newReanimationPeriodId,
+    } = req.body;
     try {
-      const newRequest = await Request.create({ ...req.body });
-      return res.json(newRequest);
+      const requestsForPatient = await CurrentRequest.findAll({
+        where: { emiasPatientId: emiasPatientId },
+        attributes: {
+          exclude: ["id", "createdAt", "updatedAt"],
+        },
+      });
+      const requests = {
+        existingRequests: [],
+        newRequests: [],
+      };
+      for (const record of requestsForPatient) {
+        if (isRean) {
+          record.dataValues.isRean = isRean;
+        }
+        const doesExist = await Request.findOne({
+          where: { emiasRequestNumber: record.dataValues.emiasRequestNumber },
+        });
+        if (doesExist) {
+          requests.existingRequests.push(doesExist);
+        } else {
+          const newRequest = await Request.create({
+            ...record.dataValues,
+            PatientId: patientId,
+            UserId: userId,
+            staffId: staffId,
+            ReanimationPeriodId: newReanimationPeriodId,
+          });
+          requests.newRequests.push(newRequest);
+        }
+      }
+      res.json({ createdRequests: requests });
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }

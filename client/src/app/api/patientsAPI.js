@@ -6,5 +6,5 @@ export const fetchCurrentPatients = async () => {
 };
 export const createPatient = async (emiasPatientId) => {
   const { data } = await client.post("patients", { emiasPatientId });
-  return data.success;
+  return data;
 };

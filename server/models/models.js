@@ -13,7 +13,7 @@ const User = sequelize.define(
 );
 
 const Staff = sequelize.define(
-  "Staff",
+  "staff",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     specialty: { type: DataTypes.STRING },
@@ -102,6 +102,7 @@ const Request = sequelize.define(
   "Request",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    emiasPatientId: DataTypes.STRING,
     emiasRequestNumber: {
       type: DataTypes.STRING,
       unique: true,
@@ -136,12 +137,12 @@ const Request = sequelize.define(
       type: DataTypes.DATE,
       defaultValue: null,
     },
-    drugCorrection: { type: DataTypes.BOOLEAN, defaultValue: false },
-    respiratoryCorrection: { type: DataTypes.BOOLEAN, defaultValue: false },
+    drugCorrection: { type: DataTypes.BOOLEAN, defaultValue: null },
+    respiratoryCorrection: { type: DataTypes.BOOLEAN, defaultValue: null },
     answerPath: DataTypes.STRING,
     answerSentToAFL: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false,
+      defaultValue: null,
     },
   },
   { underscored: true },
@@ -224,12 +225,12 @@ const CurrentRequest = sequelize.define(
       type: DataTypes.DATE,
       defaultValue: null,
     },
-    drugCorrection: { type: DataTypes.BOOLEAN, defaultValue: false },
-    respiratoryCorrection: { type: DataTypes.BOOLEAN, defaultValue: false },
+    drugCorrection: { type: DataTypes.BOOLEAN, defaultValue: null },
+    respiratoryCorrection: { type: DataTypes.BOOLEAN, defaultValue: null },
     answerPath: DataTypes.STRING,
     answerSentToAFL: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false,
+      defaultValue: null,
     },
   },
   { underscored: true },
@@ -238,17 +239,18 @@ const CurrentRequest = sequelize.define(
 const ReanimationPeriod = sequelize.define(
   "ReanimationPeriod",
   {
-    emiasId: { type: DataTypes.STRING, primaryKey: true },
-    emiasPatientId: DataTypes.STRING,
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    error: DataTypes.BOOLEAN,
+    hasReanPeriod: DataTypes.BOOLEAN,
+    emiasId: DataTypes.STRING,
     objectValue: DataTypes.STRING,
+    emiasPatientId: DataTypes.STRING,
     startDate: DataTypes.STRING,
     startTime: DataTypes.STRING,
     endDate: DataTypes.STRING,
     endTime: DataTypes.STRING,
     result: DataTypes.STRING,
     isRean: DataTypes.BOOLEAN,
-    hasReanPeriod: DataTypes.BOOLEAN,
-    error: DataTypes.BOOLEAN,
   },
   { underscored: true },
 );
@@ -256,8 +258,11 @@ const ReanimationPeriod = sequelize.define(
 const CurrentReanimationPeriod = sequelize.define(
   "CurrentReanimationPeriod",
   {
-    objectValue: { type: DataTypes.STRING, primaryKey: true },
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    error: DataTypes.BOOLEAN,
+    hasReanPeriod: DataTypes.BOOLEAN,
     emiasId: DataTypes.STRING,
+    objectValue: DataTypes.STRING,
     emiasPatientId: DataTypes.STRING,
     startDate: DataTypes.STRING,
     startTime: DataTypes.STRING,
@@ -265,8 +270,6 @@ const CurrentReanimationPeriod = sequelize.define(
     endTime: DataTypes.STRING,
     result: DataTypes.STRING,
     isRean: DataTypes.BOOLEAN,
-    hasReanPeriod: DataTypes.BOOLEAN,
-    error: DataTypes.BOOLEAN,
   },
   { underscored: true },
 );

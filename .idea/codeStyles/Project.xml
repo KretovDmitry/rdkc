@@ -8,7 +8,7 @@
       </indentOptions>
     </codeStyleSettings>
     <codeStyleSettings language="JavaScript">
-      <option name="RIGHT_MARGIN" value="140" />
+      <option name="RIGHT_MARGIN" value="120" />
       <option name="WRAP_ON_TYPING" value="1" />
       <indentOptions>
         <option name="INDENT_SIZE" value="2" />

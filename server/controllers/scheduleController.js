@@ -11,7 +11,7 @@ class ScheduleController {
       next(ApiError.badRequest(e.message));
     }
   }
-  async getByDate(req, res, next) {
+  async getCurrentMonth(req, res, next) {
     const { startDate, endDate } = req.query;
     try {
       const schedule = await Schedule.findAll({

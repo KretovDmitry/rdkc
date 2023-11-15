@@ -48,3 +48,7 @@
 .lpuName {
   padding: 5px 0;
 }
+
+.accent {
+  color: var(--accent-color);
+}

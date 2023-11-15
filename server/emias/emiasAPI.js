@@ -58,6 +58,7 @@ const emias = axios.create({
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
   },
+  proxy: false,
 });
 
 async function fetchEmiasData() {
@@ -270,7 +271,6 @@ async function getPatientEmkData(id) {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        proxy: false,
       },
     );
 
@@ -298,16 +298,20 @@ async function getPatientEmkData(id) {
       reanPeriod.emiasPatientId = id;
       reanPeriod.hasReanPeriod = false;
     }
-    reanPeriod.error = false;
     reanPeriod.objectValue = objectValue;
+    reanPeriod.error = false;
     console.log(requestData);
     console.log(reanPeriod);
     return { requestData, reanPeriod };
   } catch (e) {
     console.error("getPatientEmkData ERROR:", e?.code || e);
+    requestData.isRean = false;
     reanPeriod.emiasPatientId = id;
+    reanPeriod.hasReanPeriod = false;
     reanPeriod.objectValue = objectValue;
     reanPeriod.error = true;
+    console.log(requestData);
+    console.log(reanPeriod);
     return { requestData, reanPeriod };
   }
 }
@@ -347,7 +351,7 @@ async function main() {
   }
 }
 
-const minutes = 15;
+const minutes = 10;
 
 const emiasAPI = () => {
   let counter = 1;
