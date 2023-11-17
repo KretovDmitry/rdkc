@@ -1,14 +1,13 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import {
-  selectRequestById,
   selectRequestsByPatient,
-  selectRequestsSelectedStatus,
+  selectRequestsError,
+  selectRequestsLoadingStatus,
 } from "./requestsSlice";
 import s from "./Requests.module.css";
 
-const Request = ({ requestId }) => {
-  const request = useSelector((state) => selectRequestById(state, requestId));
+const Request = ({ request }) => {
   const tmk = request.tmk ? <div className={s.accent}>TMK</div> : null;
   const childrenCenter = request.childrenCenter ? (
     <div className={s.accent}>Детский центр</div>
@@ -27,28 +26,19 @@ const Request = ({ requestId }) => {
   );
 };
 
-const RequestsList = ({ patientId }) => {
-  const loadingStatus = useSelector((state) => state.requests.loadingStatus);
-  const error = useSelector((state) => state.requests.error);
+const RequestsList = ({ patientId, requestsSelectedStatus }) => {
+  const loadingStatus = useSelector(selectRequestsLoadingStatus);
+  const error = useSelector(selectRequestsError);
   const requestsForPatient = useSelector((state) =>
     selectRequestsByPatient(state, patientId),
-  );
-  const requestsSelectedStatus = useSelector((state) =>
-    selectRequestsSelectedStatus(state),
   );
 
   let content;
 
-  if (loadingStatus === "loading") {
-    // content = <Spinner text="Loading..." />;
-    content = "Loading...";
-  } else if (loadingStatus === "succeeded") {
+  if (loadingStatus === "succeeded") {
     content = requestsForPatient.map((request) => {
       return request.status === requestsSelectedStatus ? (
-        <Request
-          key={request.emiasRequestNumber}
-          requestId={request.emiasRequestNumber}
-        />
+        <Request key={request.emiasRequestNumber} request={request} />
       ) : null;
     });
   } else if (loadingStatus === "failed") {

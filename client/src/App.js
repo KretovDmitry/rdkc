@@ -10,6 +10,18 @@ import Auth from "./components/Auth/Auth";
 import PatientsPage from "./features/patients/PatientsPage";
 import SideBar from "./components/SideBar/SideBar";
 import Plug from "./components/Error/Plug";
+import SchedulePage from "./features/schedules/SchedulePage";
+import {
+  ADMIN_ROUTE,
+  HOME_ROUTE,
+  LOGIN_ROUTE,
+  REQUESTS_ROUTE,
+  SCHEDULE_ROUTE,
+  STATISTICS_ROUTE,
+} from "./utils/consts";
+import { fetchCurrentMonth } from "./features/schedules/scheduleSlice";
+import { fetchReanimationPeriods } from "./features/reanimationPeriods/reanimationPeriodsSlice";
+import { fetchRequests } from "./features/requests/requestsSlice";
 function App() {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
@@ -22,25 +34,26 @@ function App() {
       })
       .catch((err) => console.log(err))
       .finally(() => setLoading(false));
-  });
+    dispatch(fetchRequests());
+    dispatch(fetchReanimationPeriods());
+    dispatch(fetchCurrentMonth());
+  }, [dispatch]);
 
-  if (loading) {
-    return <Spinner />;
-  }
+  if (loading) return <Spinner />;
 
   return (
     <Router>
       <>
         <SideBar />
         <Routes>
-          <Route path="/" element={<PrivateRoute />}>
-            <Route path="/" element={<Plug />} />
-            <Route path="requests" element={<PatientsPage />} />
-            <Route path="schedule" element={<Plug />} />
-            <Route path="statistics" element={<Plug />} />
-            <Route path="admin" element={<Plug />} />
+          <Route path={HOME_ROUTE} element={<PrivateRoute />}>
+            <Route path={HOME_ROUTE} element={<Plug />} />
+            <Route path={REQUESTS_ROUTE} element={<PatientsPage />} />
+            <Route path={SCHEDULE_ROUTE} element={<SchedulePage />} />
+            <Route path={STATISTICS_ROUTE} element={<Plug />} />
+            <Route path={ADMIN_ROUTE} element={<Plug />} />
           </Route>
-          <Route path="login" element={<Auth />} />
+          <Route path={LOGIN_ROUTE} element={<Auth />} />
         </Routes>
       </>
     </Router>

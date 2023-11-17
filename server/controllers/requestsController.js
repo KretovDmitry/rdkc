@@ -8,7 +8,7 @@ class RequestsController {
       isRean,
       patientId,
       userId,
-      staffId,
+      staffIds,
       newReanimationPeriodId,
     } = req.body;
     try {
@@ -22,21 +22,21 @@ class RequestsController {
         existingRequests: [],
         newRequests: [],
       };
-      for (const record of requestsForPatient) {
+      for (const request of requestsForPatient) {
         if (isRean) {
-          record.dataValues.isRean = isRean;
+          request.dataValues.isRean = isRean;
         }
         const doesExist = await Request.findOne({
-          where: { emiasRequestNumber: record.dataValues.emiasRequestNumber },
+          where: { emiasRequestNumber: request.dataValues.emiasRequestNumber },
         });
         if (doesExist) {
           requests.existingRequests.push(doesExist);
         } else {
           const newRequest = await Request.create({
-            ...record.dataValues,
+            ...request.dataValues,
             PatientId: patientId,
             UserId: userId,
-            staffId: staffId,
+            staffId: staffIds[request.dataValues.emiasRequestNumber],
             ReanimationPeriodId: newReanimationPeriodId,
           });
           requests.newRequests.push(newRequest);

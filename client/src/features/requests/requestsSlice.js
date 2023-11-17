@@ -63,6 +63,9 @@ export const selectRequestsByPatient = createSelector(
     requests.filter((request) => request.emiasPatientId === patientId),
 );
 
+export const selectRequestsError = (state) => state.requests.error;
+export const selectRequestsLoadingStatus = (state) =>
+  state.requests.loadingStatus;
 export const selectRequestsSelectedStatus = (state) =>
   state.requests.selectedStatus;
 

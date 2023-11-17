@@ -4,6 +4,7 @@ const {
   CurrentRequest,
   CurrentPatient,
   CurrentReanimationPeriod,
+  Request,
 } = require("../models/models");
 
 const today = new Date().toLocaleDateString("ru");
@@ -179,42 +180,47 @@ async function getAllPatients(payload) {
   const patients = {};
   const requests = {};
 
-  all.forEach((patient) => {
-    if (!Object.keys(patients).includes(patient["Person_id"])) {
-      patients[patient["Person_id"]] = {
-        emiasId: patient["Person_id"],
-        fio: capitalize(patient["Person_FIO"]),
+  for (const record of all) {
+    if (!Object.keys(patients).includes(record["Person_id"])) {
+      patients[record["Person_id"]] = {
+        emiasId: record["Person_id"],
+        fio: capitalize(record["Person_FIO"]),
         requestsIds: [],
       };
     }
-    patients[patient["Person_id"]].requestsIds.push(
-      patient["EvnDirection_Num"],
-    );
+    patients[record["Person_id"]].requestsIds.push(record["EvnDirection_Num"]);
 
-    const icdCode = patient["Diag_FullName"].slice(
+    const isCreated = await Request.findOne({
+      where: {
+        emiasRequestNumber: record["EvnDirection_Num"],
+      },
+    });
+
+    const icdCode = record["Diag_FullName"].slice(
       0,
-      patient["Diag_FullName"].indexOf(". "),
+      record["Diag_FullName"].indexOf(". "),
     );
     const isIcdCodeIncluded = ICD_CODES.includes(icdCode);
 
-    requests[patient["EvnDirection_Num"]] = {
-      emiasPatientId: patient["Person_id"],
-      emiasRequestNumber: patient["EvnDirection_Num"],
-      diagnosis: patient["Diag_FullName"],
+    requests[record["EvnDirection_Num"]] = {
+      emiasPatientId: record["Person_id"],
+      emiasRequestNumber: record["EvnDirection_Num"],
+      diagnosis: record["Diag_FullName"],
       diagnosisCode: icdCode,
       IsIcdCodeValid: isIcdCodeIncluded,
-      lpu: HOSPITALS[patient["Lpu_Nick"]] || patient["Lpu_Nick"],
-      emiasCreationDate: patient["EvnDirection_insDate"],
-      emiasCreationTime: patient["EvnDirection_insTime"],
-      specialty: patient["LpuSectionProfile_Name"],
-      tmk: patient["MedService_id"] === "500801000003930",
-      childrenCenter: patient["MedService_id"] === "500801000010630",
+      lpu: HOSPITALS[record["Lpu_Nick"]] || record["Lpu_Nick"],
+      emiasCreationDate: record["EvnDirection_insDate"],
+      emiasCreationTime: record["EvnDirection_insTime"],
+      specialty: record["LpuSectionProfile_Name"],
+      tmk: record["MedService_id"] === "500801000003930",
+      childrenCenter: record["MedService_id"] === "500801000010630",
       status:
-        patient["EvnDirectionStatus_SysNick"] === "DirNew"
+        record["EvnDirectionStatus_SysNick"] === "DirNew"
           ? "Queued"
-          : patient["EvnDirectionStatus_SysNick"],
+          : record["EvnDirectionStatus_SysNick"],
+      isCreated: isCreated !== null,
     };
-  });
+  }
   return { patients, requests };
 }
 
@@ -274,24 +280,25 @@ async function getPatientEmkData(id) {
       },
     );
 
-    const evnSection = response.data.map.EvnPS.item[0].children.EvnSection.item;
+    const evnSection =
+      response.data.map["EvnPS"].item[0].children["EvnSection"].item;
     const hasReanPeriod =
-      evnSection[
-        evnSection.length - 1
-      ].children.EvnReanimatPeriod.hasOwnProperty("item");
+      evnSection[evnSection.length - 1].children[
+        "EvnReanimatPeriod"
+      ].hasOwnProperty("item");
     if (hasReanPeriod) {
       const lastReanPeriod =
-        evnSection[evnSection.length - 1].children.EvnReanimatPeriod.item[0]
+        evnSection[evnSection.length - 1].children["EvnReanimatPeriod"].item[0]
           .data;
-      requestData.isRean = !lastReanPeriod.ReanimResultType_Name;
-      reanPeriod.emiasId = lastReanPeriod.EvnReanimatPeriod_id;
+      requestData.isRean = !lastReanPeriod["ReanimResultType_Name"];
+      reanPeriod.emiasId = lastReanPeriod["EvnReanimatPeriod_id"];
       reanPeriod.emiasPatientId = id;
-      reanPeriod.startDate = lastReanPeriod.EvnReanimatPeriod_setDate;
-      reanPeriod.startTime = lastReanPeriod.EvnReanimatPeriod_setTime;
-      reanPeriod.endDate = lastReanPeriod.EvnReanimatPeriod_disDate;
-      reanPeriod.endTime = lastReanPeriod.EvnReanimatPeriod_disTime;
-      reanPeriod.result = lastReanPeriod.ReanimResultType_Name;
-      reanPeriod.isRean = !lastReanPeriod.ReanimResultType_Name;
+      reanPeriod.startDate = lastReanPeriod["EvnReanimatPeriod_setDate"];
+      reanPeriod.startTime = lastReanPeriod["EvnReanimatPeriod_setTime"];
+      reanPeriod.endDate = lastReanPeriod["EvnReanimatPeriod_disDate"];
+      reanPeriod.endTime = lastReanPeriod["EvnReanimatPeriod_disTime"];
+      reanPeriod.result = lastReanPeriod["ReanimResultType_Name"];
+      reanPeriod.isRean = !lastReanPeriod["ReanimResultType_Name"];
       reanPeriod.hasReanPeriod = true;
     } else {
       requestData.isRean = false;

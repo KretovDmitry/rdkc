@@ -56,7 +56,8 @@ class ReanimationPeriodsController {
       } else {
         if (!dataValues.error && doesExist.dataValues.error) {
           // Заменяем ошибочный РП новым, если он сам загрузился без ошибок
-          // Может пригодиться, если создали новую заявку, а мы уже сохранили ошибочные данные до этого
+          // Может пригодиться, если в один день подали новую заявку,
+          // а мы уже сохранили ошибочные данные, когда создавали предыдущие
           const newReanimationPeriod = await ReanimationPeriod.create({
             ...dataValues,
           });

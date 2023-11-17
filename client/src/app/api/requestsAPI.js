@@ -9,7 +9,7 @@ export const createRequests = async (
   isRean,
   patientId,
   userId,
-  staffId,
+  staffIds,
   newReanimationPeriodId,
 ) => {
   const { data } = await client.post("requests", {
@@ -17,7 +17,7 @@ export const createRequests = async (
     isRean,
     patientId,
     userId,
-    staffId,
+    staffIds,
     newReanimationPeriodId,
   });
   return data;

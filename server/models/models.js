@@ -90,10 +90,8 @@ const Schedule = sequelize.define(
   "Schedule",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    startDate: DataTypes.DATEONLY,
-    endDate: DataTypes.DATEONLY,
-    startTime: DataTypes.TIME,
-    endTime: DataTypes.TIME,
+    start: DataTypes.DATE,
+    end: DataTypes.DATE,
   },
   { underscored: true },
 );
@@ -196,6 +194,7 @@ const CurrentRequest = sequelize.define(
       unique: true,
       allowNull: false,
     },
+    isCreated: DataTypes.BOOLEAN,
     emiasCreationDate: {
       type: DataTypes.STRING,
       allowNull: false,

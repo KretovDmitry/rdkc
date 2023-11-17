@@ -16,7 +16,7 @@ const ReanimationPeriod = ({
     selectReanimationPeriodById(state, patientId),
   );
   const patient = useSelector((state) => selectPatientById(state, patientId));
-  const isDead = reanimationPeriod?.result === "Смерть";
+  const isDead = reanimationPeriod.result === "Смерть";
   const hintClass = isDead ? "hintDead" : "hint";
 
   if (reanimationPeriod.error) {

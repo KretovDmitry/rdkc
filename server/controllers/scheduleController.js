@@ -1,25 +1,37 @@
-const { Schedule } = require("../models/models");
+const { Schedule, Staff } = require("../models/models");
 const ApiError = require("../error/ApiError");
 const { Op } = require("sequelize");
 
 class ScheduleController {
   async create(req, res, next) {
     try {
+      const { start, end } = req.body;
+      if (end <= start) {
+        return res
+          .status(422)
+          .json({ message: "Окончание смены не может быть до её начала" });
+      }
       const newSchedule = await Schedule.create({ ...req.body });
-      return res.json(newSchedule);
+      return res.json({ newSchedule });
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
   }
-  async getCurrentMonth(req, res, next) {
-    const { startDate, endDate } = req.query;
+  async get(req, res, next) {
+    const { start, end } = req.query;
     try {
       const schedule = await Schedule.findAll({
+        include: [
+          {
+            model: Staff,
+            required: true,
+          },
+        ],
         where: {
-          startDate: {
+          start: {
             [Op.and]: {
-              [Op.gte]: startDate,
-              [Op.lte]: endDate,
+              [Op.gte]: start,
+              [Op.lte]: end,
             },
           },
         },

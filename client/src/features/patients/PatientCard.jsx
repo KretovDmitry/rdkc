@@ -11,7 +11,7 @@ import LpuName from "./LpuName";
 import ReanimationPeriod from "../reanimationPeriods/ReanimationPeriod";
 import RequestsList from "../requests/RequestsList";
 
-const PatientCard = ({ emiasId }) => {
+const PatientCard = ({ emiasId, todayStaff }) => {
   const patient = useSelector((state) => selectPatientById(state, emiasId));
   const requestId = useSelector((state) =>
     selectRequestIdByPatientId(state, emiasId),
@@ -26,7 +26,11 @@ const PatientCard = ({ emiasId }) => {
   };
   const createButton =
     requestsSelectedStatus === "Queued" ? (
-      <CreateButton patientId={emiasId} isRean={isRean} />
+      <CreateButton
+        patientId={emiasId}
+        isRean={isRean}
+        todayStaff={todayStaff}
+      />
     ) : null;
   return (
     <article className={s.patientCard}>
@@ -49,7 +53,10 @@ const PatientCard = ({ emiasId }) => {
           handleIsRean={handleIsRean}
         />
       </div>
-      <RequestsList patientId={patient.emiasId} />
+      <RequestsList
+        patientId={emiasId}
+        requestsSelectedStatus={requestsSelectedStatus}
+      />
       {createButton}
     </article>
   );

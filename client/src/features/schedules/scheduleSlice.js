@@ -4,7 +4,7 @@ import {
   createSelector,
   createSlice,
 } from "@reduxjs/toolkit";
-import { fetchCurrentMonthSchedule } from "../../app/api/scheduleAPI";
+import { fetchSchedule } from "../../app/api/scheduleAPI";
 
 const scheduleAdapter = createEntityAdapter();
 
@@ -13,30 +13,39 @@ const initialState = scheduleAdapter.getInitialState({
   error: null,
 });
 
-export const fetchSchedule = createAsyncThunk(
-  "schedule/fetchCurrentMonth",
+export const fetchCurrentMonth = createAsyncThunk(
+  "schedule/fetchDefault",
   async () => {
-    return await fetchCurrentMonthSchedule();
+    const date = new Date();
+    // [start: 2023-10-30T21:00:00.000Z] === 2023-10-31T00:00:00.000+03
+    // Последний день предыдущего месяца для тех, чья смена закончится в этом месяце
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 0);
+    // [end: 2023-11-30T20:59:59.000Z] === 2023-11-30T23:59:59.000+03
+    const lastDay = new Date(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      1,
+      0,
+      0,
+      -1,
+    );
+    return await fetchSchedule(firstDay, lastDay);
   },
 );
 
 const scheduleSlice = createSlice({
   name: "schedule",
   initialState,
-  reducers: {
-    setSelectedStatus: (state, action) => {
-      state.selectedStatus = action.payload;
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
-    builder.addCase(fetchSchedule.pending, (state) => {
+    builder.addCase(fetchCurrentMonth.pending, (state) => {
       state.loadingStatus = "loading";
     });
-    builder.addCase(fetchSchedule.fulfilled, (state, action) => {
+    builder.addCase(fetchCurrentMonth.fulfilled, (state, action) => {
       state.loadingStatus = "succeeded";
       scheduleAdapter.setAll(state, action.payload);
     });
-    builder.addCase(fetchSchedule.rejected, (state, action) => {
+    builder.addCase(fetchCurrentMonth.rejected, (state, action) => {
       state.loadingStatus = "failed";
       state.error = action.error.message;
     });
@@ -45,61 +54,34 @@ const scheduleSlice = createSlice({
 
 export default scheduleSlice.reducer;
 
-// Export the customized selectors for this adapter using `getSelectors`
 export const {
-  selectAll: selectAllRequests,
-  selectById: selectRequestById,
-  selectIds: selectRequestsIds,
+  selectAll: selectAllSchedule,
+  selectById: selectScheduleById,
+  selectIds: selectScheduleIds,
 } = scheduleAdapter.getSelectors((state) => state.schedule);
 
-export const { setSelectedStatus } = scheduleSlice.actions;
+// export const {} = scheduleSlice.actions;
 
-export const selectRequestsByPatient = createSelector(
-  [selectAllRequests, (state, patientId) => patientId],
-  (requests, patientId) =>
-    requests.filter((request) => request.emiasPatientId === patientId),
-);
-
-export const selectRequestsSelectedStatus = (state) =>
-  state.requests.selectedStatus;
-
-export const selectRequestIdByPatientId = (state, patientId) => {
-  const requestsForPatient = Object.values(state.requests.entities).find(
-    (request) => request.emiasPatientId === patientId,
-  );
-  return requestsForPatient.emiasRequestNumber;
-};
-
-export const selectRequestsBySelectedStatus = createSelector(
-  [selectAllRequests, selectRequestsSelectedStatus],
-  (requests, selectedStatus) => {
-    return requests.filter((request) => request.status === selectedStatus);
+export const selectStaffForToday = createSelector(
+  [selectAllSchedule],
+  (schedule) => {
+    return schedule.filter((record) => {
+      const startDate = new Date(record.start);
+      const endDate = new Date(record.end);
+      const date = new Date();
+      const today = date.getDate();
+      console.log("selectStaffForToday");
+      return startDate.getDate() === today || endDate.getDate() === today;
+    });
   },
 );
 
-export const selectPatientsIdsBySelectedStatus = createSelector(
-  [selectRequestsBySelectedStatus],
-  (requestsWithSelectedStatus) => {
-    const patientsIds = [];
-    requestsWithSelectedStatus.sort((a, b) => {
-      if (
-        a.emiasCreationDate + a.emiasCreationTime >
-        b.emiasCreationDate + b.emiasCreationTime
-      ) {
-        return -1;
-      } else if (
-        a.emiasCreationDate + a.emiasCreationTime <
-        b.emiasCreationDate + b.emiasCreationTime
-      ) {
-        return 1;
-      }
-      return 0;
-    });
-    requestsWithSelectedStatus.forEach((request) => {
-      if (!patientsIds.includes(request.emiasPatientId)) {
-        patientsIds.push(request.emiasPatientId);
-      }
-    });
-    return patientsIds;
-  },
+export const selectCurrentStaff = createSelector(
+  [selectStaffForToday],
+  (schedule) =>
+    schedule.filter((record) => {
+      console.log("selectCurrentStaff");
+      const now = new Date();
+      return new Date(record.start) <= now && new Date(record.end) >= now;
+    }),
 );

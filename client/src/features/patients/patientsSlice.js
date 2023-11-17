@@ -49,3 +49,7 @@ export const {
   selectById: selectPatientById,
   selectIds: selectPatientsIds,
 } = patientsAdapter.getSelectors((state) => state.patients);
+
+export const selectPatientsError = (state) => state.patients.error;
+export const selectPatientsLoadingStatus = (state) =>
+  state.patients.loadingStatus;
