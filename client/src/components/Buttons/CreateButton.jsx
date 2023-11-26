@@ -6,14 +6,19 @@ import { useSelector } from "react-redux";
 import { selectUser } from "../../features/users/usersSlice";
 import { createReanimationPeriods } from "../../app/api/reanimationPeriodsAPI";
 import { selectRequestsByPatient } from "../../features/requests/requestsSlice";
+import { selectReanimationPeriodById } from "../../features/reanimationPeriods/reanimationPeriodsSlice";
 
-const CreateButton = ({ patientId, isRean, todayStaff }) => {
+const CreateButton = ({ patientId, isRean, isAdult, todayStaff }) => {
   const user = useSelector(selectUser);
   const [buttonClass, setButtonClass] = useState(null);
   const [disabled, setDisabled] = useState(false);
   const requestsForPatient = useSelector((state) =>
     selectRequestsByPatient(state, patientId),
   );
+  const rp = useSelector((state) =>
+    selectReanimationPeriodById(state, patientId),
+  );
+  // Detects new incoming requests
   let isCreated = true;
   for (const request of requestsForPatient) {
     if (!request.isCreated) {
@@ -28,7 +33,13 @@ const CreateButton = ({ patientId, isRean, todayStaff }) => {
     }
   }, [isCreated]);
 
-  const handleToggle = async (todayStaff, requestsForPatient) => {
+  const handleToggle = async (
+    patientId,
+    todayStaff,
+    requestsForPatient,
+    objectValue,
+    isAdult,
+  ) => {
     setDisabled(true);
     setButtonClass("onClick");
     const currentStaff = todayStaff.filter((record) => {
@@ -38,23 +49,27 @@ const CreateButton = ({ patientId, isRean, todayStaff }) => {
     const staffIds = {};
     for (const request of requestsForPatient) {
       const specialist = currentStaff.find(
-        (record) => record.staff.emiasSpecialty === request.specialty,
+        (record) =>
+          record.staff.emiasSpecialty === request.specialty &&
+          record.staff.forAdults === isAdult,
       );
       staffIds[request.emiasRequestNumber] = specialist.staffId;
     }
     try {
-      const response = await createPatient(patientId);
-      const responseRP = await createReanimationPeriods(patientId);
-      await createRequests(
+      const { dataValues: patient } = await createPatient(patientId);
+      const { dataValues: rp } = await createReanimationPeriods(objectValue);
+      const { success } = await createRequests(
         patientId,
-        isRean,
-        response.id,
+        rp.error ? isRean : rp.isRean,
+        patient.id,
         user.id,
         staffIds,
-        responseRP.id,
+        rp.id,
       );
       setTimeout(() => {
-        setButtonClass("validate");
+        const val = success ? "validate" : null;
+        setButtonClass(val);
+        setDisabled(false);
       }, 1250);
     } catch (e) {
       setButtonClass(null);
@@ -66,7 +81,15 @@ const CreateButton = ({ patientId, isRean, todayStaff }) => {
     <button
       className={`${s.button} ${s[buttonClass]}`}
       disabled={disabled}
-      onClick={() => handleToggle(todayStaff, requestsForPatient)}
+      onClick={() =>
+        handleToggle(
+          patientId,
+          todayStaff,
+          requestsForPatient,
+          rp.objectValue,
+          isAdult,
+        )
+      }
     ></button>
   );
 };

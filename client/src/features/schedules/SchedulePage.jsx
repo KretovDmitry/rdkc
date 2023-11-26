@@ -12,9 +12,10 @@ const SchedulePage = () => {
   if (loadingStatus === "succeeded") {
     content = all.map((entity) => (
       <div key={entity.id}>
-        <p>{entity.staff.specialty}</p>
-        <p>{new Date(entity.start).toLocaleString()}</p>
-        <p>{new Date(entity.end).toLocaleString()}</p>
+        <p>
+          {entity.staff.fullName}: {new Date(entity.start).toLocaleString()} -{" "}
+          {new Date(entity.end).toLocaleString()}
+        </p>
       </div>
     ));
   } else if (loadingStatus === "failed") {

@@ -47,3 +47,7 @@ export const {
   selectById: selectReanimationPeriodById,
   selectIds: selectReanimationPeriodsIds,
 } = reanimationPeriodsAdapter.getSelectors((state) => state.reanimationPeriods);
+
+export const selectRpError = (state) => state.reanimationPeriods.error;
+export const selectRpLoadingStatus = (state) =>
+  state.reanimationPeriods.loadingStatus;

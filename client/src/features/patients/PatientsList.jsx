@@ -1,7 +1,6 @@
-import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React from "react";
+import { useSelector } from "react-redux";
 import {
-  fetchPatients,
   selectPatientsError,
   selectPatientsLoadingStatus,
 } from "./patientsSlice";
@@ -10,31 +9,29 @@ import {
   selectRequestsBySelectedStatus,
 } from "../requests/requestsSlice";
 import s from "./Patients.module.css";
-import { Spinner } from "../../components/Spinner/Spinner";
 import PatientCard from "./PatientCard";
 
 const PatientsList = ({ todayStaff }) => {
-  const dispatch = useDispatch();
   const patientsLoadingStatus = useSelector(selectPatientsLoadingStatus);
   const error = useSelector(selectPatientsError);
   const patientsIds = useSelector(selectPatientsIdsBySelectedStatus);
   const requestsIds = useSelector(selectRequestsBySelectedStatus);
-  useEffect(() => {
-    if (patientsLoadingStatus === "idle") {
-      dispatch(fetchPatients());
-    }
-  }, [patientsLoadingStatus, dispatch]);
 
   let content;
 
-  if (patientsLoadingStatus === "loading") {
-    content = <Spinner />;
-  } else if (patientsLoadingStatus === "succeeded") {
-    content = patientsIds.map((emiasId) => {
-      return (
+  if (patientsLoadingStatus === "succeeded") {
+    content = patientsIds.length ? (
+      patientsIds.map((emiasId) => (
         <PatientCard key={emiasId} emiasId={emiasId} todayStaff={todayStaff} />
-      );
-    });
+      ))
+    ) : (
+      <div className={s.john}>
+        <img
+          alt="Нет заявок"
+          src="http://172.16.5.162:3000/gif/john-travolta-searching.gif"
+        ></img>
+      </div>
+    );
   } else if (patientsLoadingStatus === "failed") {
     content = <div>{error}</div>;
   }
@@ -45,7 +42,7 @@ const PatientsList = ({ todayStaff }) => {
         <h3>Количество пациентов: {patientsIds.length}</h3>
         <h3>Количество заявок: {requestsIds.length}</h3>
       </div>
-      {patientsIds.length ? content : "Нет заявок"}
+      {content}
     </>
   );
 };

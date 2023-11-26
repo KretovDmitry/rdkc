@@ -19,7 +19,13 @@ const Request = ({ request }) => {
         {childrenCenter}
         <div>{request.emiasCreationDate}</div>
         <div>{request.emiasCreationTime}</div>
-        <div>{request.diagnosisCode}</div>
+        {request.diagnosisCode === "U07.1" ? (
+          <div className={s.u071}>
+            <b>{request.diagnosisCode}</b>
+          </div>
+        ) : (
+          <div>{request.diagnosisCode}</div>
+        )}
         <div>{request.specialty}</div>
       </div>
     </li>

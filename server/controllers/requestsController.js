@@ -1,5 +1,6 @@
 const { Request, CurrentRequest } = require("../models/models");
 const ApiError = require("../error/ApiError");
+const { fillOldReport } = require("../fs/excel");
 
 class RequestsController {
   async create(req, res, next) {
@@ -15,34 +16,59 @@ class RequestsController {
       const requestsForPatient = await CurrentRequest.findAll({
         where: { emiasPatientId: emiasPatientId },
         attributes: {
-          exclude: ["id", "createdAt", "updatedAt"],
+          exclude: ["id", "isCreated", "createdAt", "updatedAt"],
         },
       });
-      const requests = {
-        existingRequests: [],
-        newRequests: [],
-      };
+      const requests = {};
+      const newRequestNumbers = [];
       for (const request of requestsForPatient) {
         if (isRean) {
-          request.dataValues.isRean = isRean;
+          request.isRean = isRean;
         }
-        const doesExist = await Request.findOne({
-          where: { emiasRequestNumber: request.dataValues.emiasRequestNumber },
-        });
-        if (doesExist) {
-          requests.existingRequests.push(doesExist);
-        } else {
-          const newRequest = await Request.create({
+        const [req] = await Request.findOrCreate({
+          where: { emiasRequestNumber: request.emiasRequestNumber },
+          defaults: {
             ...request.dataValues,
             PatientId: patientId,
             UserId: userId,
-            staffId: staffIds[request.dataValues.emiasRequestNumber],
+            staffId: staffIds[request.emiasRequestNumber],
             ReanimationPeriodId: newReanimationPeriodId,
-          });
-          requests.newRequests.push(newRequest);
+          },
+        });
+        requests[req.id] = { ...req };
+        if (req._options.isNewRecord) {
+          newRequestNumbers.push(req.emiasRequestNumber);
         }
       }
-      res.json({ createdRequests: requests });
+      const respond = (success) => {
+        console.log("res", success);
+        res.json({ success: success, requests });
+      };
+      if (newRequestNumbers.length) {
+        fillOldReport(newRequestNumbers).then(async (success) => {
+          if (success) {
+            for (const num of newRequestNumbers) {
+              await CurrentRequest.update(
+                { isCreated: true },
+                {
+                  where: {
+                    emiasRequestNumber: num,
+                  },
+                },
+              );
+            }
+          } else {
+            for (const num of newRequestNumbers) {
+              await Request.destroy({
+                where: { emiasRequestNumber: num },
+              });
+            }
+          }
+          respond(success);
+        });
+      } else {
+        respond(success);
+      }
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
@@ -55,15 +81,15 @@ class RequestsController {
       next(ApiError.badRequest(e.message));
     }
   }
-  async getOne(req, res, next) {
-    const { status } = req.params;
-    try {
-      const patient = await Request.findOne({ where: { id } });
-      return res.json(patient);
-    } catch (e) {
-      next(ApiError.badRequest(e.message));
-    }
-  }
+  // async getOne(req, res, next) {
+  //   const { status } = req.params;
+  //   try {
+  //     const patient = await Request.findOne({ where: { id } });
+  //     return res.json(patient);
+  //   } catch (e) {
+  //     next(ApiError.badRequest(e.message));
+  //   }
+  // }
 }
 
 module.exports = new RequestsController();

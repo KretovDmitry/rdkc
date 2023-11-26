@@ -2,6 +2,7 @@ import axios from "axios";
 const baseURL = "http://172.16.5.162:5000/api";
 export const client = axios.create({
   baseURL: baseURL,
+  timeout: 10000,
 });
 export const authClient = axios.create({
   baseURL: baseURL,

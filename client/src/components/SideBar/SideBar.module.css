@@ -1,5 +1,4 @@
 body {
-  margin: 0;
   padding-left: 210px;
 }
 
@@ -48,28 +47,28 @@ body {
 }
 
 .menu ul li.iconDashboard {
-  background-image: url("https://icongr.am/entypo/home.svg?size=128&color=000000");
+  background-image: url("http://172.16.5.162:3000/svg/home.svg");
 }
 
 .menu ul li.requests {
-  background-image: url("https://icongr.am/entypo/infinity.svg?size=128&color=000000");
+  background-image: url("http://172.16.5.162:3000/svg/infinity.svg");
 }
 
 .menu ul li.schedule {
-  background-image: url("https://icongr.am/entypo/calendar.svg?size=128&color=000000");
+  background-image: url("http://172.16.5.162:3000/svg/calendar.svg");
 }
 
 .menu ul li.statistics {
-  background-image: url("https://icongr.am/entypo/bar-graph.svg?size=128&color=000000");
+  background-image: url("http://172.16.5.162:3000/svg/bar-graf.svg");
 }
 
 .menu ul li.admin {
-  background-image: url("https://icongr.am/entypo/tools.svg?size=128&color=currentColor");
+  background-image: url("http://172.16.5.162:3000/svg/tools.svg");
 }
 
 .menu ul li.exit {
   margin-top: auto;
-  background-image: url("https://icongr.am/entypo/log-out.svg?size=128&color=currentColor");
+  background-image: url("http://172.16.5.162:3000/svg/log-out.svg");
 }
 
 .menu ul li:hover {

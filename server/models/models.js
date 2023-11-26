@@ -7,6 +7,23 @@ const User = sequelize.define(
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     login: { type: DataTypes.STRING, unique: true, allowNull: false },
     password: { type: DataTypes.STRING, allowNull: false },
+    lastName: { type: DataTypes.STRING, allowNull: false },
+    firstName: { type: DataTypes.STRING, allowNull: false },
+    middleName: { type: DataTypes.STRING, allowNull: false },
+    fullName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return `${this.lastName} ${this.firstName} ${this.middleName}`;
+      },
+    },
+    shortName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+      },
+    },
+    dateOfBirth: DataTypes.DATEONLY,
+    cellPhoneNumber: { type: DataTypes.STRING, unique: true },
     role: { type: DataTypes.STRING, defaultValue: "USER", allowNull: false },
   },
   { underscored: true },
@@ -34,16 +51,13 @@ const Staff = sequelize.define(
       },
     },
     dateOfBirth: DataTypes.DATEONLY,
-    email: { type: DataTypes.STRING, unique: true },
+    // мейл не уникален для некоторых отделений
+    email: DataTypes.STRING,
     cellPhoneNumber: { type: DataTypes.STRING, unique: true },
     emiasLogin: { type: DataTypes.STRING, unique: true },
     emiasPassword: DataTypes.STRING,
     departmentHead: { type: DataTypes.BOOLEAN, defaultValue: false },
-    role: {
-      type: DataTypes.STRING,
-      defaultValue: "PHYSICIAN",
-      allowNull: false,
-    },
+    forAdults: { type: DataTypes.BOOLEAN, defaultValue: true },
   },
   { freezeTableName: true, underscored: true },
 );
@@ -114,7 +128,7 @@ const Request = sequelize.define(
     status: { type: DataTypes.STRING, allowNull: false },
     isRean: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      defaultValue: null,
     },
     tmk: DataTypes.BOOLEAN,
     childrenCenter: DataTypes.BOOLEAN,

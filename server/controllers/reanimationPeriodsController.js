@@ -2,7 +2,6 @@ const {
   ReanimationPeriod,
   CurrentReanimationPeriod,
 } = require("../models/models");
-const { Request } = require("../models/models");
 const ApiError = require("../error/ApiError");
 
 class ReanimationPeriodsController {
@@ -34,56 +33,17 @@ class ReanimationPeriodsController {
   }
   async create(req, res, next) {
     try {
-      const { dataValues } = await CurrentReanimationPeriod.findOne({
-        where: { emiasPatientId: req.body.emiasPatientId },
+      const { dataValues: curRP } = await CurrentReanimationPeriod.findOne({
+        where: { objectValue: req.body.objectValue },
         attributes: {
           exclude: ["id", "createdAt", "updatedAt"],
         },
       });
-      const doesExist = await ReanimationPeriod.findOne({
-        where: { emiasPatientId: req.body.emiasPatientId },
+      const [rp] = await ReanimationPeriod.findOrCreate({
+        where: { objectValue: req.body.objectValue },
+        defaults: { ...curRP },
       });
-      if (!doesExist || dataValues.emiasId !== doesExist.dataValues.emiasId) {
-        // Создаём РП, если он отсутствует или был у пациента раньше
-        // даже если он загрузился с ошибкой
-        const newReanimationPeriod = await ReanimationPeriod.create({
-          ...dataValues,
-        });
-        return res.json({
-          id: newReanimationPeriod.id,
-          newReanimationPeriod,
-        });
-      } else {
-        if (!dataValues.error && doesExist.dataValues.error) {
-          // Заменяем ошибочный РП новым, если он сам загрузился без ошибок
-          // Может пригодиться, если в один день подали новую заявку,
-          // а мы уже сохранили ошибочные данные, когда создавали предыдущие
-          const newReanimationPeriod = await ReanimationPeriod.create({
-            ...dataValues,
-          });
-          await Request.update(
-            { ReanimationPeriodId: newReanimationPeriod.id },
-            {
-              where: {
-                ReanimationPeriodId: doesExist.dataValues.id,
-              },
-            },
-          );
-          await ReanimationPeriod.destroy({
-            where: { id: doesExist.dataValues.id },
-          });
-          return res.json({
-            id: newReanimationPeriod.id,
-            newReanimationPeriod,
-          });
-        }
-        return res.json({
-          // Возвращаем существующий РП, даже если он с ошибкой
-          // Если так и не удалось получить корректные данные
-          id: doesExist.dataValues.id,
-          existingReanimationPeriod: doesExist.dataValues,
-        });
-      }
+      return res.json({ ...rp });
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
@@ -96,15 +56,15 @@ class ReanimationPeriodsController {
       next(ApiError.badRequest(e.message));
     }
   }
-  async getOne(req, res, next) {
-    const { status } = req.params;
-    try {
-      const patient = await Request.findOne({ where: { id } });
-      return res.json(patient);
-    } catch (e) {
-      next(ApiError.badRequest(e.message));
-    }
-  }
+  // async getOne(req, res, next) {
+  //   const { status } = req.params;
+  //   try {
+  //     const patient = await Request.findOne({ where: { id } });
+  //     return res.json(patient);
+  //   } catch (e) {
+  //     next(ApiError.badRequest(e.message));
+  //   }
+  // }
 }
 
 module.exports = new ReanimationPeriodsController();

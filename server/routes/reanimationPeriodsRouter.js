@@ -6,6 +6,5 @@ router.post("/", reanimationPeriodsController.create);
 router.post("/test", reanimationPeriodsController.testCRP);
 router.post("/test2", reanimationPeriodsController.testRP);
 router.get("/", reanimationPeriodsController.getAll);
-router.get("/:id", reanimationPeriodsController.getOne);
 
 module.exports = router;

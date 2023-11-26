@@ -4,44 +4,37 @@ const { makeUniqueDirectory } = require("../fs/dirAPI");
 const { createWord } = require("../fs/docx");
 
 class PatientsController {
+  static publicPatientData = [
+    "id",
+    "fullName",
+    "shortName",
+    "emiasId",
+    "lastName",
+    "firstName",
+    "middleName",
+    "birthDate",
+    "age",
+    "isAdult",
+    "gender",
+    "isIdentified",
+    "isDead",
+  ];
   async create(req, res, next) {
     try {
-      const doesExist = await Patient.findOne({
-        where: { emiasId: req.body.emiasPatientId },
-      });
-      if (doesExist)
-        return res.json({
-          id: doesExist.id,
-          existingPatient: {
-            fullName: doesExist.fullName,
-            emiasId: doesExist.emiasId,
-            id: doesExist.id,
-            updatedAt: doesExist.updatedAt,
-            createdAt: doesExist.createdAt,
-          },
-        });
-      const { dataValues } = await CurrentPatient.findOne({
+      const { dataValues: curPatient } = await CurrentPatient.findOne({
         where: { emiasId: req.body.emiasPatientId },
         attributes: {
           exclude: ["id", "createdAt", "updatedAt"],
         },
       });
-      const newPatient = await Patient.create({
-        ...dataValues,
+      const [patient] = await Patient.findOrCreate({
+        where: { emiasId: req.body.emiasPatientId },
+        defaults: { ...curPatient },
+        attributes: PatientsController.publicPatientData,
       });
-      const newPatientFolder = await makeUniqueDirectory(newPatient.shortName);
-      createWord(newPatientFolder, newPatient.shortName);
-      return res.json({
-        id: newPatient.id,
-        createdPatient: {
-          fullName: newPatient.fullName,
-          emiasId: newPatient.emiasId,
-          id: newPatient.id,
-          updatedAt: newPatient.updatedAt,
-          createdAt: newPatient.createdAt,
-        },
-        success: true,
-      });
+      const newPatientFolder = await makeUniqueDirectory(patient.shortName);
+      createWord(newPatientFolder, patient.shortName);
+      return res.json({ ...patient });
     } catch (e) {
       next(ApiError.badRequest(e.message));
     }
@@ -49,20 +42,7 @@ class PatientsController {
   async getAll(req, res, next) {
     try {
       const patients = await CurrentPatient.findAll({
-        attributes: [
-          "fullName",
-          "shortName",
-          "emiasId",
-          "lastName",
-          "firstName",
-          "middleName",
-          "birthDate",
-          "age",
-          "isAdult",
-          "gender",
-          "isIdentified",
-          "isDead",
-        ],
+        attributes: PatientsController.publicPatientData,
       });
       return res.json(patients);
     } catch (e) {

@@ -19,9 +19,6 @@ import {
   SCHEDULE_ROUTE,
   STATISTICS_ROUTE,
 } from "./utils/consts";
-import { fetchCurrentMonth } from "./features/schedules/scheduleSlice";
-import { fetchReanimationPeriods } from "./features/reanimationPeriods/reanimationPeriodsSlice";
-import { fetchRequests } from "./features/requests/requestsSlice";
 function App() {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
@@ -34,9 +31,6 @@ function App() {
       })
       .catch((err) => console.log(err))
       .finally(() => setLoading(false));
-    dispatch(fetchRequests());
-    dispatch(fetchReanimationPeriods());
-    dispatch(fetchCurrentMonth());
   }, [dispatch]);
 
   if (loading) return <Spinner />;

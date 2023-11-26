@@ -21,6 +21,7 @@
     "officegen": "^0.6.5",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
+    "python-shell": "^5.0.0",
     "sequelize": "^6.33.0"
   },
   "devDependencies": {

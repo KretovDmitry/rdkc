@@ -21,7 +21,6 @@ const PatientCard = ({ emiasId, todayStaff }) => {
   );
   const [isRean, setIsRean] = useState(true);
   const handleIsRean = (value) => {
-    console.log(value);
     setIsRean(value !== "stac");
   };
   const createButton =
@@ -29,6 +28,7 @@ const PatientCard = ({ emiasId, todayStaff }) => {
       <CreateButton
         patientId={emiasId}
         isRean={isRean}
+        isAdult={patient.isAdult}
         todayStaff={todayStaff}
       />
     ) : null;
@@ -37,7 +37,9 @@ const PatientCard = ({ emiasId, todayStaff }) => {
       <div className={s.patientCardHeader}>
         <h4 className={s.patientFIO}>{patient.fullName}</h4>
         <div className={s.patientAdditionalHeaderInfo}>
-          <div>Дата рождения: {patient.birthDate}</div>
+          <div className={s.birthdate}>
+            Дата рождения: {patient.birthDate} ({patient.age})
+          </div>
           {patient.isAdult ? (
             <div>Взрослые</div>
           ) : (

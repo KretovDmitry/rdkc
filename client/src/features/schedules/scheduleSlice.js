@@ -6,7 +6,9 @@ import {
 } from "@reduxjs/toolkit";
 import { fetchSchedule } from "../../app/api/scheduleAPI";
 
-const scheduleAdapter = createEntityAdapter();
+const scheduleAdapter = createEntityAdapter({
+  sortComparer: (a, b) => a.start.localeCompare(b.start),
+});
 
 const initialState = scheduleAdapter.getInitialState({
   loadingStatus: "idle",
@@ -20,11 +22,12 @@ export const fetchCurrentMonth = createAsyncThunk(
     // [start: 2023-10-30T21:00:00.000Z] === 2023-10-31T00:00:00.000+03
     // Последний день предыдущего месяца для тех, чья смена закончится в этом месяце
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 0);
-    // [end: 2023-11-30T20:59:59.000Z] === 2023-11-30T23:59:59.000+03
+    // [end: 2023-11-30T20:59:59.999Z] === 2023-11-30T23:59:59.999+03
     const lastDay = new Date(
       date.getFullYear(),
       date.getMonth() + 1,
       1,
+      0,
       0,
       0,
       -1,
@@ -70,7 +73,6 @@ export const selectStaffForToday = createSelector(
       const endDate = new Date(record.end);
       const date = new Date();
       const today = date.getDate();
-      console.log("selectStaffForToday");
       return startDate.getDate() === today || endDate.getDate() === today;
     });
   },

@@ -62,35 +62,6 @@ const emias = axios.create({
   proxy: false,
 });
 
-async function fetchEmiasData() {
-  try {
-    if (!emias.defaults.headers.common["Cookie"]) {
-      console.log("Cookie:", emias.defaults.headers.common["Cookie"]);
-      await getCookies();
-      await login(account.login, account.psw);
-    }
-    console.log("Cookie:", emias.defaults.headers.common["Cookie"]);
-    const { patients, requests } = await getAllPatients(patientsPayload);
-    const reanimationPeriods = {};
-    for (const id of Object.keys(patients)) {
-      const patient = await loadPatientData(id);
-      patients[id] = { ...patients[id], ...patient };
-      try {
-        const { requestData, reanPeriod } = await getPatientEmkData(id);
-        reanimationPeriods[id] = reanPeriod;
-        const requestsIds = patients[id].requestsIds;
-        for (const requestId of requestsIds) {
-          requests[requestId].isRean = requestData.isRean;
-        }
-      } catch (e) {
-        console.log(e);
-      }
-    }
-    return { patients, requests, reanimationPeriods };
-  } catch (e) {
-    console.log(e);
-  }
-}
 async function getCookies() {
   console.log("getCookies");
   const response = await emias.get("/?c=portal&m=promed&from=promed", {
@@ -113,43 +84,7 @@ async function login(login, psw) {
     },
   );
 }
-async function loadPatientData(id) {
-  console.log("loadPatientData");
-  const response = await emias.post(
-    "https://hospital.emias.mosreg.ru/?c=Common&m=loadPersonData",
-    { Person_id: id, mode: "PersonInfoPanel" },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    },
-  );
-  const patientData = response.data[0];
-  const patient = {};
-  patient.firstName = capitalize(patientData["Person_Firname"]);
-  patient.lastName = capitalize(patientData["Person_Surname"]);
-  patient.middleName = capitalize(patientData["Person_Secname"]);
-  patient.birthDate = patientData["Person_Birthday"];
-  patient.age = patientData["Person_Age"];
-  patient.isAdult = +patientData["Person_Age"] >= 18;
-  patient.gender = patientData["Sex_Name"];
-  patient.isIdentified = [
-    patientData["DocumentType_Name"],
-    patientData["Document_Num"],
-    patientData["Person_Snils"],
-  ].every(Boolean);
-  patient.documentTypeName = patientData["DocumentType_Name"] || null;
-  patient.documentSer = patientData["Document_Ser"] || null;
-  patient.documentNum = patientData["Document_Num"] || null;
-  patient.snils = patientData["Person_Snils"] || null;
-  patient.omsCompany = patientData["OrgSmo_Name"] || null;
-  patient.omsNumber =
-    patientData["Polis_Ser"] && patientData["Polis_Num"]
-      ? patientData["Polis_Ser"] + patientData["Polis_Num"]
-      : patientData["Polis_Num"] || null;
 
-  return patient;
-}
 async function getPatients(payload) {
   console.log(
     "getPatients",
@@ -190,12 +125,6 @@ async function getAllPatients(payload) {
     }
     patients[record["Person_id"]].requestsIds.push(record["EvnDirection_Num"]);
 
-    const isCreated = await Request.findOne({
-      where: {
-        emiasRequestNumber: record["EvnDirection_Num"],
-      },
-    });
-
     const icdCode = record["Diag_FullName"].slice(
       0,
       record["Diag_FullName"].indexOf(". "),
@@ -218,12 +147,51 @@ async function getAllPatients(payload) {
         record["EvnDirectionStatus_SysNick"] === "DirNew"
           ? "Queued"
           : record["EvnDirectionStatus_SysNick"],
-      isCreated: isCreated !== null,
     };
   }
   return { patients, requests };
 }
+async function loadPatientData(id) {
+  try {
+    console.log("loadPatientData");
+    const response = await emias.post(
+      "https://hospital.emias.mosreg.ru/?c=Common&m=loadPersonData",
+      { Person_id: id, mode: "PersonInfoPanel" },
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      },
+    );
+    const patientData = response.data[0];
+    const patient = {};
+    patient.firstName = capitalize(patientData["Person_Firname"]);
+    patient.lastName = capitalize(patientData["Person_Surname"]);
+    patient.middleName = capitalize(patientData["Person_Secname"]);
+    patient.birthDate = patientData["Person_Birthday"];
+    patient.age = patientData["Person_Age"];
+    patient.isAdult = +patientData["Person_Age"] >= 18;
+    patient.gender = patientData["Sex_Name"];
+    patient.isIdentified = [
+      patientData["DocumentType_Name"],
+      patientData["Document_Num"],
+      patientData["Person_Snils"],
+    ].every(Boolean);
+    patient.documentTypeName = patientData["DocumentType_Name"] || null;
+    patient.documentSer = patientData["Document_Ser"] || null;
+    patient.documentNum = patientData["Document_Num"] || null;
+    patient.snils = patientData["Person_Snils"] || null;
+    patient.omsCompany = patientData["OrgSmo_Name"] || null;
+    patient.omsNumber =
+      patientData["Polis_Ser"] && patientData["Polis_Num"]
+        ? patientData["Polis_Ser"] + patientData["Polis_Num"]
+        : patientData["Polis_Num"] || null;
 
+    return patient;
+  } catch (e) {
+    console.error("loadPatientData ERROR:", e?.code || e);
+  }
+}
 async function getPatientObjectValue(id) {
   const response = await emias.post(
     "https://hospital.emias.mosreg.ru/?c=EMK&m=getPersonEmkData",
@@ -254,11 +222,9 @@ async function getPatientObjectValue(id) {
   });
   return requiredObject["object_value"];
 }
-
 async function getPatientEmkData(id) {
   const objectValue = await getPatientObjectValue(id);
   console.log("getPatientEmkData");
-  const requestData = {};
   const reanPeriod = {};
   try {
     const response = await emias.post(
@@ -279,7 +245,6 @@ async function getPatientEmkData(id) {
         },
       },
     );
-
     const evnSection =
       response.data.map["EvnPS"].item[0].children["EvnSection"].item;
     const hasReanPeriod =
@@ -290,7 +255,6 @@ async function getPatientEmkData(id) {
       const lastReanPeriod =
         evnSection[evnSection.length - 1].children["EvnReanimatPeriod"].item[0]
           .data;
-      requestData.isRean = !lastReanPeriod["ReanimResultType_Name"];
       reanPeriod.emiasId = lastReanPeriod["EvnReanimatPeriod_id"];
       reanPeriod.emiasPatientId = id;
       reanPeriod.startDate = lastReanPeriod["EvnReanimatPeriod_setDate"];
@@ -301,25 +265,54 @@ async function getPatientEmkData(id) {
       reanPeriod.isRean = !lastReanPeriod["ReanimResultType_Name"];
       reanPeriod.hasReanPeriod = true;
     } else {
-      requestData.isRean = false;
       reanPeriod.emiasPatientId = id;
       reanPeriod.hasReanPeriod = false;
+      reanPeriod.isRean = false;
     }
     reanPeriod.objectValue = objectValue;
     reanPeriod.error = false;
-    console.log(requestData);
-    console.log(reanPeriod);
-    return { requestData, reanPeriod };
+    console.log(`Reanimation Period for ${id}:`, reanPeriod);
+    return { reanPeriod };
   } catch (e) {
     console.error("getPatientEmkData ERROR:", e?.code || e);
-    requestData.isRean = false;
     reanPeriod.emiasPatientId = id;
     reanPeriod.hasReanPeriod = false;
+    reanPeriod.isRean = false;
     reanPeriod.objectValue = objectValue;
     reanPeriod.error = true;
-    console.log(requestData);
-    console.log(reanPeriod);
-    return { requestData, reanPeriod };
+    console.log(`Reanimation Period for ${id}:`, reanPeriod);
+    return { reanPeriod };
+  }
+}
+async function fetchEmiasData() {
+  try {
+    if (!emias.defaults.headers.common["Cookie"]) {
+      console.log("Cookie:", emias.defaults.headers.common["Cookie"]);
+      await getCookies();
+      await login(account.login, account.psw);
+    }
+    console.log("Cookie:", emias.defaults.headers.common["Cookie"]);
+    const { patients, requests } = await getAllPatients(patientsPayload);
+    const reanimationPeriods = {};
+    for (const id of Object.keys(patients)) {
+      const patient = await loadPatientData(id);
+      patients[id] = { ...patients[id], ...patient };
+      try {
+        const { reanPeriod } = await getPatientEmkData(id);
+        reanimationPeriods[id] = reanPeriod;
+        for (const requestId of patients[id].requestsIds) {
+          requests[requestId].isRean = reanPeriod.isRean;
+          console.log(
+            `Patient ${id} Request ${requestId} isRean = ${reanPeriod.isRean}; error: ${reanPeriod.error}`,
+          );
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    return { patients, requests, reanimationPeriods };
+  } catch (e) {
+    console.log(e);
   }
 }
 async function main() {
@@ -337,6 +330,12 @@ async function main() {
     }
     await CurrentRequest.truncate();
     for (const request of Object.values(requests)) {
+      const isCreated = await Request.findOne({
+        where: {
+          emiasRequestNumber: request.emiasRequestNumber,
+        },
+      });
+      request.isCreated = isCreated !== null;
       await CurrentRequest.create(request);
       console.log(
         "----------------------Request with emiasRequestNumber:",

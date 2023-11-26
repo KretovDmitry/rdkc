@@ -29,17 +29,17 @@ function createFolder(dirName) {
   let folder;
   const lastChar = dirName.slice(-1);
   if (lastChar === ".") {
-    folder = join(testPath, dirName.slice(0, -1));
+    folder = join(pathForCurrentMonth, dirName.slice(0, -1));
   } else {
-    folder = join(testPath, dirName);
+    folder = join(pathForCurrentMonth, dirName);
   }
   if (existsSync(folder)) {
     console.log(folder, "exists");
-    const folderWithDate = join(testPath, dirName + " " + today);
+    const folderWithDate = join(pathForCurrentMonth, dirName + " " + today);
     if (existsSync(folderWithDate)) {
       console.log(folderWithDate, "exists");
       return join(
-        testPath,
+        pathForCurrentMonth,
         dirName + " " + today + " " + Math.round(Math.random() * 1_000_000),
       );
     } else {
