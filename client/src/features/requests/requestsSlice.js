@@ -30,6 +30,9 @@ const requestsSlice = createSlice({
     setSelectedStatus: (state, action) => {
       state.selectedStatus = action.payload;
     },
+    setRequestCreatedById: (state, action) => {
+      state.entities[action.payload]['isCreated'] = true;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchRequests.pending, (state) => {
@@ -55,7 +58,7 @@ export const {
   selectIds: selectRequestsIds,
 } = requestsAdapter.getSelectors((state) => state.requests);
 
-export const { setSelectedStatus } = requestsSlice.actions;
+export const { setSelectedStatus, setRequestCreatedById } = requestsSlice.actions;
 
 export const selectRequestsByPatient = createSelector(
   [selectAllRequests, (state, patientId) => patientId],

@@ -11,7 +11,7 @@ import {
 import s from "./Patients.module.css";
 import PatientCard from "./PatientCard";
 
-const PatientsList = ({ todayStaff }) => {
+const PatientsList = () => {
   const patientsLoadingStatus = useSelector(selectPatientsLoadingStatus);
   const error = useSelector(selectPatientsError);
   const patientsIds = useSelector(selectPatientsIdsBySelectedStatus);
@@ -22,7 +22,7 @@ const PatientsList = ({ todayStaff }) => {
   if (patientsLoadingStatus === "succeeded") {
     content = patientsIds.length ? (
       patientsIds.map((emiasId) => (
-        <PatientCard key={emiasId} emiasId={emiasId} todayStaff={todayStaff} />
+        <PatientCard key={emiasId} emiasId={emiasId} />
       ))
     ) : (
       <div className={s.john}>

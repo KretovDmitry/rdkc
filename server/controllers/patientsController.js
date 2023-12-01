@@ -32,8 +32,6 @@ class PatientsController {
         defaults: { ...curPatient },
         attributes: PatientsController.publicPatientData,
       });
-      const newPatientFolder = await makeUniqueDirectory(patient.shortName);
-      createWord(newPatientFolder, patient.shortName);
       return res.json({ ...patient });
     } catch (e) {
       next(ApiError.badRequest(e.message));

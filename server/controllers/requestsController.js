@@ -1,6 +1,8 @@
-const { Request, CurrentRequest } = require("../models/models");
+const { Request, CurrentRequest, Patient } = require("../models/models");
 const ApiError = require("../error/ApiError");
 const { fillOldReport } = require("../fs/excel");
+const { makeUniqueDirectory } = require("../fs/dirAPI");
+const { createWord } = require("../fs/docx");
 
 class RequestsController {
   async create(req, res, next) {
@@ -36,7 +38,7 @@ class RequestsController {
           },
         });
         requests[req.id] = { ...req };
-        if (req._options.isNewRecord) {
+        if (req._options.isNewRecord && req.status !== "Canceled") {
           newRequestNumbers.push(req.emiasRequestNumber);
         }
       }
@@ -57,6 +59,14 @@ class RequestsController {
                 },
               );
             }
+            const patient = await Patient.findOne({
+              where: { emiasId: emiasPatientId },
+            });
+            const newPatientFolder = await makeUniqueDirectory(
+              patient.fullName,
+              patient.birthDate,
+            );
+            createWord(newPatientFolder, patient.shortName);
           } else {
             for (const num of newRequestNumbers) {
               await Request.destroy({
@@ -67,7 +77,7 @@ class RequestsController {
           respond(success);
         });
       } else {
-        respond(success);
+        respond(true)
       }
     } catch (e) {
       next(ApiError.badRequest(e.message));

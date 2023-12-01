@@ -11,7 +11,7 @@ import LpuName from "./LpuName";
 import ReanimationPeriod from "../reanimationPeriods/ReanimationPeriod";
 import RequestsList from "../requests/RequestsList";
 
-const PatientCard = ({ emiasId, todayStaff }) => {
+const PatientCard = ({ emiasId }) => {
   const patient = useSelector((state) => selectPatientById(state, emiasId));
   const requestId = useSelector((state) =>
     selectRequestIdByPatientId(state, emiasId),
@@ -29,7 +29,6 @@ const PatientCard = ({ emiasId, todayStaff }) => {
         patientId={emiasId}
         isRean={isRean}
         isAdult={patient.isAdult}
-        todayStaff={todayStaff}
       />
     ) : null;
   return (

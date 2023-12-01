@@ -1,11 +1,21 @@
-import React from "react";
-import { useSelector } from "react-redux";
-import { selectAllSchedule } from "./scheduleSlice";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchCurrentMonth,
+  selectAllSchedule,
+  selectScheduleLoadingStatus,
+} from "./scheduleSlice";
 
 const SchedulePage = () => {
+  const dispatch = useDispatch();
   const error = useSelector((state) => state.schedule.error);
-  const loadingStatus = useSelector((state) => state.schedule.loadingStatus);
+  const loadingStatus = useSelector(selectScheduleLoadingStatus);
   const all = useSelector(selectAllSchedule);
+  useEffect(() => {
+    if (loadingStatus === "idle") {
+      dispatch(fetchCurrentMonth());
+    }
+  }, [loadingStatus, dispatch]);
 
   let content;
 
@@ -13,7 +23,8 @@ const SchedulePage = () => {
     content = all.map((entity) => (
       <div key={entity.id}>
         <p>
-          {entity.staff.fullName}: {new Date(entity.start).toLocaleString()} -{" "}
+          {entity.staff.specialty} {entity.staff.fullName}:{" "}
+          {new Date(entity.start).toLocaleString()} -{" "}
           {new Date(entity.end).toLocaleString()}
         </p>
       </div>

@@ -2,14 +2,19 @@ import React, { useEffect, useState } from "react";
 import s from "./CreateButton.module.css";
 import { createPatient } from "../../app/api/patientsAPI";
 import { createRequests } from "../../app/api/requestsAPI";
-import { useSelector } from "react-redux";
+import {useDispatch, useSelector} from "react-redux";
 import { selectUser } from "../../features/users/usersSlice";
 import { createReanimationPeriods } from "../../app/api/reanimationPeriodsAPI";
-import { selectRequestsByPatient } from "../../features/requests/requestsSlice";
+import {selectRequestsByPatient, setRequestCreatedById} from "../../features/requests/requestsSlice";
 import { selectReanimationPeriodById } from "../../features/reanimationPeriods/reanimationPeriodsSlice";
+import {
+  selectAllSchedule,
+} from "../../features/schedules/scheduleSlice";
 
-const CreateButton = ({ patientId, isRean, isAdult, todayStaff }) => {
+const CreateButton = ({ patientId, isRean, isAdult }) => {
+  const dispatch = useDispatch()
   const user = useSelector(selectUser);
+  const allSchedule = useSelector(selectAllSchedule);
   const [buttonClass, setButtonClass] = useState(null);
   const [disabled, setDisabled] = useState(false);
   const requestsForPatient = useSelector((state) =>
@@ -35,14 +40,14 @@ const CreateButton = ({ patientId, isRean, isAdult, todayStaff }) => {
 
   const handleToggle = async (
     patientId,
-    todayStaff,
+    allSchedule,
     requestsForPatient,
     objectValue,
     isAdult,
   ) => {
     setDisabled(true);
     setButtonClass("onClick");
-    const currentStaff = todayStaff.filter((record) => {
+    const currentStaff = allSchedule.filter((record) => {
       const now = new Date();
       return new Date(record.start) <= now && new Date(record.end) >= now;
     });
@@ -66,11 +71,21 @@ const CreateButton = ({ patientId, isRean, isAdult, todayStaff }) => {
         staffIds,
         rp.id,
       );
-      setTimeout(() => {
-        const val = success ? "validate" : null;
-        setButtonClass(val);
+      if (success) {
+        setButtonClass("validate");
+        setDisabled(true);
+        for (const request of requestsForPatient) {
+          dispatch(setRequestCreatedById(request.emiasRequestNumber))
+        }
+      } else {
+        setButtonClass(null);
         setDisabled(false);
-      }, 1250);
+      }
+      // setTimeout(() => {
+      //   const val = success ? "validate" : null;
+      //   setButtonClass(val);
+      //   setDisabled(false);
+      // }, 1250);
     } catch (e) {
       setButtonClass(null);
       setDisabled(false);
@@ -84,7 +99,7 @@ const CreateButton = ({ patientId, isRean, isAdult, todayStaff }) => {
       onClick={() =>
         handleToggle(
           patientId,
-          todayStaff,
+          allSchedule,
           requestsForPatient,
           rp.objectValue,
           isAdult,

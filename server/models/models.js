@@ -10,18 +10,30 @@ const User = sequelize.define(
     lastName: { type: DataTypes.STRING, allowNull: false },
     firstName: { type: DataTypes.STRING, allowNull: false },
     middleName: { type: DataTypes.STRING, allowNull: false },
-    fullName: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return `${this.lastName} ${this.firstName} ${this.middleName}`;
+      fullName: {
+          type: DataTypes.VIRTUAL,
+          get() {
+              if (this.lastName && this.firstName && this.middleName) {
+                  return `${this.lastName} ${this.firstName} ${this.middleName}`;
+              } else if (this.lastName && this.firstName) {
+                  return `${this.lastName} ${this.firstName}`;
+              } else {
+                  return `${this.lastName}`;
+              }
+          },
       },
-    },
-    shortName: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+      shortName: {
+          type: DataTypes.VIRTUAL,
+          get() {
+              if (this.lastName && this.firstName && this.middleName) {
+                  return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+              } else if (this.lastName && this.firstName) {
+                  return `${this.lastName} ${this.firstName[0]}.`;
+              } else {
+                  return `${this.lastName}`;
+              }
+          },
       },
-    },
     dateOfBirth: DataTypes.DATEONLY,
     cellPhoneNumber: { type: DataTypes.STRING, unique: true },
     role: { type: DataTypes.STRING, defaultValue: "USER", allowNull: false },
@@ -38,18 +50,30 @@ const Staff = sequelize.define(
     lastName: { type: DataTypes.STRING, allowNull: false },
     firstName: DataTypes.STRING,
     middleName: DataTypes.STRING,
-    fullName: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return `${this.lastName} ${this.firstName} ${this.middleName}`;
+      fullName: {
+          type: DataTypes.VIRTUAL,
+          get() {
+              if (this.lastName && this.firstName && this.middleName) {
+                  return `${this.lastName} ${this.firstName} ${this.middleName}`;
+              } else if (this.lastName && this.firstName) {
+                  return `${this.lastName} ${this.firstName}`;
+              } else {
+                  return `${this.lastName}`;
+              }
+          },
       },
-    },
-    shortName: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+      shortName: {
+          type: DataTypes.VIRTUAL,
+          get() {
+              if (this.lastName && this.firstName && this.middleName) {
+                  return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+              } else if (this.lastName && this.firstName) {
+                  return `${this.lastName} ${this.firstName[0]}.`;
+              } else {
+                  return `${this.lastName}`;
+              }
+          },
       },
-    },
     dateOfBirth: DataTypes.DATEONLY,
     // мейл не уникален для некоторых отделений
     email: DataTypes.STRING,
@@ -73,13 +97,25 @@ const Patient = sequelize.define(
     fullName: {
       type: DataTypes.VIRTUAL,
       get() {
-        return `${this.lastName} ${this.firstName} ${this.middleName}`;
+        if (this.lastName && this.firstName && this.middleName) {
+          return `${this.lastName} ${this.firstName} ${this.middleName}`;
+        } else if (this.lastName && this.firstName) {
+          return `${this.lastName} ${this.firstName}`;
+        } else {
+          return `${this.lastName}`;
+        }
       },
     },
     shortName: {
       type: DataTypes.VIRTUAL,
       get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+        if (this.lastName && this.firstName && this.middleName) {
+          return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+        } else if (this.lastName && this.firstName) {
+          return `${this.lastName} ${this.firstName[0]}.`;
+        } else {
+          return `${this.lastName}`;
+        }
       },
     },
     birthDate: DataTypes.STRING,
@@ -168,18 +204,30 @@ const CurrentPatient = sequelize.define(
     lastName: DataTypes.STRING,
     firstName: DataTypes.STRING,
     middleName: DataTypes.STRING,
-    fullName: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return `${this.lastName} ${this.firstName} ${this.middleName}`;
+      fullName: {
+          type: DataTypes.VIRTUAL,
+          get() {
+              if (this.lastName && this.firstName && this.middleName) {
+                  return `${this.lastName} ${this.firstName} ${this.middleName}`;
+              } else if (this.lastName && this.firstName) {
+                  return `${this.lastName} ${this.firstName}`;
+              } else {
+                  return `${this.lastName}`;
+              }
+          },
       },
-    },
-    shortName: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+      shortName: {
+          type: DataTypes.VIRTUAL,
+          get() {
+              if (this.lastName && this.firstName && this.middleName) {
+                  return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+              } else if (this.lastName && this.firstName) {
+                  return `${this.lastName} ${this.firstName[0]}.`;
+              } else {
+                  return `${this.lastName}`;
+              }
+          },
       },
-    },
     birthDate: DataTypes.STRING,
     age: DataTypes.STRING,
     isAdult: DataTypes.BOOLEAN,

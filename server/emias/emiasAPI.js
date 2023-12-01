@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { HOSPITALS, ICD_CODES } = require("./constants");
+const { HOSPITALS, ICD_CODES, DEBUG } = require("./constants");
 const {
   CurrentRequest,
   CurrentPatient,
@@ -7,28 +7,26 @@ const {
   Request,
 } = require("../models/models");
 
-const today = new Date().toLocaleDateString("ru");
-
 const patientsPayload = [
   {
-    // Rean
+    // Reanimation
     MedService_id: "11380",
-    begDate: today,
-    endDate: today,
+    begDate: new Date().toLocaleDateString("ru"),
+    endDate: new Date().toLocaleDateString("ru"),
     limit: "200",
   },
   {
     // TMK
     MedService_id: "500801000003930",
-    begDate: today,
-    endDate: today,
+    begDate: new Date().toLocaleDateString("ru"),
+    endDate: new Date().toLocaleDateString("ru"),
     limit: "200",
   },
   {
     // Children
     MedService_id: "500801000010630",
-    begDate: today,
-    endDate: today,
+    begDate: new Date().toLocaleDateString("ru"),
+    endDate: new Date().toLocaleDateString("ru"),
     limit: "200",
   },
 ];
@@ -60,10 +58,13 @@ const emias = axios.create({
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
   },
   proxy: false,
+  timeout: 120000, //code: 'ECONNRESET'
 });
 
 async function getCookies() {
-  console.log("getCookies");
+  if (DEBUG) {
+    console.log(new Date().toLocaleString("ru"), "getCookies");
+  }
   const response = await emias.get("/?c=portal&m=promed&from=promed", {
     headers: { Referer: "https://hospital.emias.mosreg.ru/?c=promed" },
   });
@@ -73,7 +74,9 @@ async function getCookies() {
   );
 }
 async function login(login, psw) {
-  console.log("login");
+  if (DEBUG) {
+    console.log(new Date().toLocaleString("ru"), "login");
+  }
   await emias.post(
     "?c=main&m=index&method=Logon&login=" + login,
     { login, psw },
@@ -84,34 +87,75 @@ async function login(login, psw) {
     },
   );
 }
-
 async function getPatients(payload) {
-  console.log(
-    "getPatients",
-    payload.MedService_id === "11380"
-      ? "REANIMATION"
-      : payload.MedService_id === "500801000003930"
-      ? "TMK"
-      : "CHILDREN",
-  );
-  const response = await emias.post(
-    "?c=EvnUslugaTelemed&m=loadWorkPlaceGrid",
-    { ...payload },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        Accept: "*/*",
+  if (DEBUG) {
+    console.log(
+      new Date().toLocaleString("ru"),
+      "getPatients",
+      payload.MedService_id === "11380"
+        ? "REANIMATION"
+        : payload.MedService_id === "500801000003930"
+        ? "TMK"
+        : "CHILDREN",
+    );
+  }
+  try {
+    const response = await emias.post(
+      "?c=EvnUslugaTelemed&m=loadWorkPlaceGrid",
+      { ...payload },
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Accept: "*/*",
+        },
       },
-    },
-  );
-  return response.data.data;
+    );
+    return response.data.data;
+  } catch (e) {
+    console.log(e?.response?.status || e);
+    return 0;
+  }
 }
 async function getAllPatients(payload) {
   const all = [];
   for (const p of payload) {
     const response = await getPatients(p);
+    if (!response) return 0;
     all.push(...response);
   }
+  // const currentRequests = await CurrentRequest.findAll();
+  // const date = new Date();
+  // const today = date.getDate();
+  // let lastCreatedDate
+  // if (currentRequests.length) {
+  //   lastCreatedDate = new Date(currentRequests[0].createdAt);
+  // } else {
+  //   lastCreatedDate = new Date(
+  //       date.getFullYear(),
+  //       date.getMonth(),
+  //       date.getDate() + 1,
+  //   );
+  // }
+  // console.log(
+  //   "All requests at the moment:",
+  //   all.length,
+  //   "\nAlready collected requests:",
+  //   currentRequests.length,
+  //   "\nLast created request:",
+  //   lastCreatedDate.getDate(),
+  //   "\nToday:",
+  //   today,
+  // );
+  // // There is no need to collect data if all requests have already been collected,
+  // // or it was not possible to collect them all due to an error
+  // // If the next day has come, in any case, we collect all the data
+  // // because EMIAS can return a smaller number of requests, excluding completed ones
+  // if (all.length <= currentRequests.length && lastCreatedDate.getDate() === today) {
+  //   console.log(
+  //     "----------------------------------------------NOTHING NEW----------------------------------------------",
+  //   );
+  //   return 0;
+  // }
   const patients = {};
   const requests = {};
 
@@ -153,7 +197,9 @@ async function getAllPatients(payload) {
 }
 async function loadPatientData(id) {
   try {
-    console.log("loadPatientData");
+    if (DEBUG) {
+      console.log(new Date().toLocaleString("ru"), `loadPatientData for ${id}`);
+    }
     const response = await emias.post(
       "https://hospital.emias.mosreg.ru/?c=Common&m=loadPersonData",
       { Person_id: id, mode: "PersonInfoPanel" },
@@ -174,8 +220,9 @@ async function loadPatientData(id) {
     patient.gender = patientData["Sex_Name"];
     patient.isIdentified = [
       patientData["DocumentType_Name"],
-      patientData["Document_Num"],
+      patientData["Document_Num"] || patientData["Document_Ser"],
       patientData["Person_Snils"],
+      patientData["Polis_Num"],
     ].every(Boolean);
     patient.documentTypeName = patientData["DocumentType_Name"] || null;
     patient.documentSer = patientData["Document_Ser"] || null;
@@ -189,10 +236,27 @@ async function loadPatientData(id) {
 
     return patient;
   } catch (e) {
-    console.error("loadPatientData ERROR:", e?.code || e);
+    if (DEBUG) {
+      console.error(
+        new Date().toLocaleString("ru"),
+        `loadPatientData ${id} ERROR:`,
+        e?.code || e,
+      );
+    }
   }
 }
-async function getPatientObjectValue(id) {
+async function getHospitalizationId(
+  emiasPatientId,
+  creationDate,
+  creationTime,
+) {
+  if (DEBUG) {
+    console.log(
+      new Date().toLocaleString("ru"),
+      "getPatientObjectValue for",
+      emiasPatientId,
+    );
+  }
   const response = await emias.post(
     "https://hospital.emias.mosreg.ru/?c=EMK&m=getPersonEmkData",
     {
@@ -200,8 +264,8 @@ async function getPatientObjectValue(id) {
       type: 0,
       level: 0,
       object: "Person",
-      object_id: id,
-      Person_id: id,
+      object_id: emiasPatientId,
+      Person_id: emiasPatientId,
       ARMType: "common",
       user_LpuUnitType_SysNick: "stac",
       user_MedStaffFact_id: 37217,
@@ -217,15 +281,46 @@ async function getPatientObjectValue(id) {
       },
     },
   );
-  let requiredObject = response.data.find((obj) => {
+  const hospitalizations = response.data.filter((obj) => {
+    // Find all hospitalizations
     return obj["object_id"] === "EvnPS_id";
   });
-  return requiredObject["object_value"];
+  const hospitalization = hospitalizations.find((obj) => {
+    try {
+      // Find first hospitalization in DSC server response
+      // excluding a possible transfer to another hospital after submitting the application
+      const dateString = obj.date;
+      const dateTimeArr = dateString.split(" ");
+      const dateArr = dateTimeArr[0].split(".").reverse();
+      const timeArr = dateTimeArr[1].split(":");
+      const date = new Date(...dateArr, ...timeArr);
+      const creationDateArr = creationDate.split(".").reverse();
+      const creationTimeArr = creationTime.split(":");
+      const requestCreationDate = new Date(
+        ...creationDateArr,
+        ...creationTimeArr,
+      );
+      return requestCreationDate > date;
+    } catch (e) {
+      console.log(e);
+    }
+  });
+  return hospitalization["object_value"];
 }
-async function getPatientEmkData(id) {
-  const objectValue = await getPatientObjectValue(id);
-  console.log("getPatientEmkData");
-  const reanPeriod = {};
+async function getPatientEmkData(
+  emiasPatientId,
+  objectValue,
+  emiasRequestNumber,
+) {
+  if (DEBUG) {
+    console.log(
+      new Date().toLocaleString("ru"),
+      "getPatientEmkData for",
+      emiasPatientId,
+      "with object value",
+      objectValue,
+    );
+  }
   try {
     const response = await emias.post(
       "https://hospital.emias.mosreg.ru/?c=Template&m=getEvnFormEvnPS",
@@ -245,81 +340,153 @@ async function getPatientEmkData(id) {
         },
       },
     );
-    const evnSection =
-      response.data.map["EvnPS"].item[0].children["EvnSection"].item;
-    const hasReanPeriod =
-      evnSection[evnSection.length - 1].children[
-        "EvnReanimatPeriod"
-      ].hasOwnProperty("item");
-    if (hasReanPeriod) {
-      const lastReanPeriod =
-        evnSection[evnSection.length - 1].children["EvnReanimatPeriod"].item[0]
-          .data;
-      reanPeriod.emiasId = lastReanPeriod["EvnReanimatPeriod_id"];
-      reanPeriod.emiasPatientId = id;
-      reanPeriod.startDate = lastReanPeriod["EvnReanimatPeriod_setDate"];
-      reanPeriod.startTime = lastReanPeriod["EvnReanimatPeriod_setTime"];
-      reanPeriod.endDate = lastReanPeriod["EvnReanimatPeriod_disDate"];
-      reanPeriod.endTime = lastReanPeriod["EvnReanimatPeriod_disTime"];
-      reanPeriod.result = lastReanPeriod["ReanimResultType_Name"];
-      reanPeriod.isRean = !lastReanPeriod["ReanimResultType_Name"];
-      reanPeriod.hasReanPeriod = true;
-    } else {
-      reanPeriod.emiasPatientId = id;
-      reanPeriod.hasReanPeriod = false;
-      reanPeriod.isRean = false;
-    }
-    reanPeriod.objectValue = objectValue;
-    reanPeriod.error = false;
-    console.log(`Reanimation Period for ${id}:`, reanPeriod);
-    return { reanPeriod };
+    const evnPsItems = response.data.map["EvnPS"].item;
+    const evnPsItem = evnPsItems.find((obj) => obj["EvnPS_id"] === objectValue);
+    const evnSectionItems = evnPsItem.children["EvnSection"].item;
+    const evnSection = evnSectionItems.find((obj) => {
+      const directionsSection = obj.children["EvnDirectionStac"];
+      if (!directionsSection.hasOwnProperty("item")) {
+        return false;
+      }
+      const directions = directionsSection.item;
+      const hasCurrentRequest = (element) => {
+        const dirNumString = element.data["EvnDirection_Num"];
+        const dirNumArr = dirNumString.split(" ");
+        const dirNum = dirNumArr[dirNumArr.length - 1];
+        return dirNum === emiasRequestNumber;
+      };
+      return directions.some(hasCurrentRequest);
+    });
+    return { evnSection, error: false };
   } catch (e) {
-    console.error("getPatientEmkData ERROR:", e?.code || e);
-    reanPeriod.emiasPatientId = id;
+    if (DEBUG) {
+      console.error(
+        new Date().toLocaleString("ru"),
+        "getPatientEmkData ERROR:",
+        e?.code || e,
+      );
+    }
+    return { evnSection: null, error: true };
+  }
+}
+function getReanimationPeriod(
+  emiasPatientId,
+  objectValue,
+  currentEvent,
+  error,
+) {
+  const reanPeriod = {};
+  if (error) {
+    reanPeriod.emiasPatientId = emiasPatientId;
     reanPeriod.hasReanPeriod = false;
     reanPeriod.isRean = false;
     reanPeriod.objectValue = objectValue;
     reanPeriod.error = true;
-    console.log(`Reanimation Period for ${id}:`, reanPeriod);
-    return { reanPeriod };
+    if (DEBUG) {
+      console.log(
+        new Date().toLocaleString("ru"),
+        `Reanimation Period for ${emiasPatientId}:`,
+        reanPeriod,
+      );
+    }
+    return reanPeriod;
   }
+  const hasReanPeriod =
+    currentEvent.children["EvnReanimatPeriod"].hasOwnProperty("item");
+  if (hasReanPeriod) {
+    const lastReanPeriod =
+      currentEvent.children["EvnReanimatPeriod"].item[0].data;
+    reanPeriod.emiasId = lastReanPeriod["EvnReanimatPeriod_id"];
+    reanPeriod.emiasPatientId = emiasPatientId;
+    reanPeriod.startDate = lastReanPeriod["EvnReanimatPeriod_setDate"];
+    reanPeriod.startTime = lastReanPeriod["EvnReanimatPeriod_setTime"];
+    reanPeriod.endDate = lastReanPeriod["EvnReanimatPeriod_disDate"];
+    reanPeriod.endTime = lastReanPeriod["EvnReanimatPeriod_disTime"];
+    reanPeriod.result = lastReanPeriod["ReanimResultType_Name"];
+    reanPeriod.isRean = !lastReanPeriod["ReanimResultType_Name"];
+    reanPeriod.hasReanPeriod = true;
+  } else {
+    reanPeriod.emiasPatientId = emiasPatientId;
+    reanPeriod.hasReanPeriod = false;
+    reanPeriod.isRean = false;
+  }
+  reanPeriod.objectValue = objectValue;
+  reanPeriod.error = false;
+  if (DEBUG) {
+    console.log(
+      new Date().toLocaleString("ru"),
+      `Reanimation Period for ${emiasPatientId}:`,
+      reanPeriod,
+    );
+  }
+  return reanPeriod;
 }
 async function fetchEmiasData() {
   try {
     if (!emias.defaults.headers.common["Cookie"]) {
-      console.log("Cookie:", emias.defaults.headers.common["Cookie"]);
+      if (DEBUG) {
+        console.log(
+          new Date().toLocaleString("ru"),
+          "Cookie:",
+          emias.defaults.headers.common["Cookie"],
+        );
+      }
       await getCookies();
+      if (DEBUG) {
+        console.log(
+          new Date().toLocaleString("ru"),
+          "Cookie:",
+          emias.defaults.headers.common["Cookie"],
+        );
+      }
       await login(account.login, account.psw);
     }
-    console.log("Cookie:", emias.defaults.headers.common["Cookie"]);
-    const { patients, requests } = await getAllPatients(patientsPayload);
+    const response = await getAllPatients(patientsPayload);
+    if (!response) return 0;
     const reanimationPeriods = {};
-    for (const id of Object.keys(patients)) {
+    for (const id of Object.keys(response.patients)) {
       const patient = await loadPatientData(id);
-      patients[id] = { ...patients[id], ...patient };
-      try {
-        const { reanPeriod } = await getPatientEmkData(id);
-        reanimationPeriods[id] = reanPeriod;
-        for (const requestId of patients[id].requestsIds) {
-          requests[requestId].isRean = reanPeriod.isRean;
+      response.patients[id] = { ...response.patients[id], ...patient };
+      const requestForPatient =
+        response.requests[response.patients[id].requestsIds[0]];
+      const hospitalizationId = await getHospitalizationId(
+        id,
+        requestForPatient.emiasCreationDate,
+        requestForPatient.emiasCreationTime,
+      );
+      const { evnSection, error } = await getPatientEmkData(
+        id,
+        hospitalizationId,
+        response.patients[id].requestsIds[0],
+      );
+      const reanPeriod = getReanimationPeriod(
+        id,
+        hospitalizationId,
+        evnSection,
+        error,
+      );
+      reanimationPeriods[id] = reanPeriod;
+      for (const requestId of response.patients[id].requestsIds) {
+        response.requests[requestId].isRean = reanPeriod.isRean;
+        if (DEBUG) {
           console.log(
+            new Date().toLocaleString("ru"),
             `Patient ${id} Request ${requestId} isRean = ${reanPeriod.isRean}; error: ${reanPeriod.error}`,
           );
         }
-      } catch (e) {
-        console.log(e);
       }
     }
-    return { patients, requests, reanimationPeriods };
+    return { ...response, reanimationPeriods };
   } catch (e) {
     console.log(e);
   }
 }
 async function main() {
   try {
-    const { patients, requests, reanimationPeriods } = await fetchEmiasData();
+    const response = await fetchEmiasData();
+    if (!response) return;
     await CurrentPatient.truncate();
-    for (const patient of Object.values(patients)) {
+    for (const patient of Object.values(response.patients)) {
       delete patient.requestsIds;
       await CurrentPatient.create(patient);
       console.log(
@@ -329,7 +496,7 @@ async function main() {
       );
     }
     await CurrentRequest.truncate();
-    for (const request of Object.values(requests)) {
+    for (const request of Object.values(response.requests)) {
       const isCreated = await Request.findOne({
         where: {
           emiasRequestNumber: request.emiasRequestNumber,
@@ -344,7 +511,7 @@ async function main() {
       );
     }
     await CurrentReanimationPeriod.truncate();
-    for (const period of Object.values(reanimationPeriods)) {
+    for (const period of Object.values(response.reanimationPeriods)) {
       await CurrentReanimationPeriod.create(period);
       console.log(
         "----------------------Reanimation Period with emiasId:",
@@ -357,7 +524,7 @@ async function main() {
   }
 }
 
-const minutes = 10;
+const minutes = 5;
 
 const emiasAPI = () => {
   let counter = 1;

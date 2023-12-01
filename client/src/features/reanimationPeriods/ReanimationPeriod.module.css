@@ -131,7 +131,7 @@
   width: 14px;
   height: 14px;
   border-radius: 14px;
-  top: -1px;
+  /*top: -1px;*/
   left: -1px;
   position: relative;
   background-color: #d1d3d1;
@@ -145,7 +145,7 @@
   width: 14px;
   height: 14px;
   border-radius: 14px;
-  top: -1px;
+  /*top: -1px;*/
   left: -1px;
   position: relative;
   background-color: var(--accent-color);

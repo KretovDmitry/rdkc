@@ -14,7 +14,6 @@ import { Spinner } from "../../components/Spinner/Spinner";
 
 const PatientsPage = () => {
   const dispatch = useDispatch();
-  const todayStaff = useSelector(selectStaffForToday);
   const patientsLoadingStatus = useSelector(selectPatientsLoadingStatus);
   useEffect(() => {
     if (patientsLoadingStatus === "idle") {
@@ -34,7 +33,7 @@ const PatientsPage = () => {
       <div className={s.container}>
         <section className={s.patientsList}>
           <SelectRequestsStatus />
-          <PatientsList todayStaff={todayStaff} />
+          <PatientsList />
         </section>
       </div>
     );

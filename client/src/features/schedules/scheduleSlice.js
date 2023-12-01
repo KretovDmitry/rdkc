@@ -7,7 +7,7 @@ import {
 import { fetchSchedule } from "../../app/api/scheduleAPI";
 
 const scheduleAdapter = createEntityAdapter({
-  sortComparer: (a, b) => a.start.localeCompare(b.start),
+  sortComparer: (a, b) => a.staff.specialty.localeCompare(b.staff.specialty),
 });
 
 const initialState = scheduleAdapter.getInitialState({
@@ -69,11 +69,14 @@ export const selectStaffForToday = createSelector(
   [selectAllSchedule],
   (schedule) => {
     return schedule.filter((record) => {
-      const startDate = new Date(record.start);
-      const endDate = new Date(record.end);
-      const date = new Date();
-      const today = date.getDate();
-      return startDate.getDate() === today || endDate.getDate() === today;
+      // const startDate = new Date(record.start);
+      // const endDate = new Date(record.end);
+      // const date = new Date();
+      // const today = date.getDate();
+      // return startDate.getDate() === today || endDate.getDate() === today;
+      console.log("selectStaffForToday");
+      const now = new Date();
+      return new Date(record.start) <= now && new Date(record.end) >= now;
     });
   },
 );
@@ -87,3 +90,6 @@ export const selectCurrentStaff = createSelector(
       return new Date(record.start) <= now && new Date(record.end) >= now;
     }),
 );
+
+export const selectScheduleLoadingStatus = (state) =>
+  state.schedule.loadingStatus;
