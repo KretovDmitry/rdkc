@@ -13,7 +13,7 @@ async function fillOldReport(emiasRequestNumbers) {
           "emiasPatientId",
           "emiasRequestNumber",
           "emiasCreationTime",
-          "status",
+          // "status",
           "tmk",
           "childrenCenter",
           "diagnosis",
@@ -30,32 +30,34 @@ async function fillOldReport(emiasRequestNumbers) {
         ],
       },
     });
-    const patient = await Patient.findOne({
-      where: { id: req.PatientId },
-      attributes: {
-        exclude: [
-          "id",
-          "emiasId",
-          "documentTypeName",
-          "documentSer",
-          "documentNum",
-          "isDead",
-          "deadDate",
-          "deadTime",
-          "age",
-          "createdAt",
-          "updatedAt",
-        ],
-      },
-    });
-    const specialist = await Staff.findOne({ where: { id: req.staffId } });
-    const coordinator = await User.findOne({ where: { id: req.UserId } });
-    data[emiasRequestNumber] = {
-      ...req.dataValues,
-      ...patient.dataValues,
-      specialist: specialist.shortName,
-      coordinator: coordinator.shortName,
-    };
+    if (req.status !== "Canceled") {
+      const patient = await Patient.findOne({
+        where: { id: req.PatientId },
+        attributes: {
+          exclude: [
+            "id",
+            "emiasId",
+            "documentTypeName",
+            "documentSer",
+            "documentNum",
+            "isDead",
+            "deadDate",
+            "deadTime",
+            "age",
+            "createdAt",
+            "updatedAt",
+          ],
+        },
+      });
+      const specialist = await Staff.findOne({ where: { id: req.staffId } });
+      const coordinator = await User.findOne({ where: { id: req.UserId } });
+      data[emiasRequestNumber] = {
+        ...req.dataValues,
+        ...patient.dataValues,
+        specialist: specialist.shortName,
+        coordinator: coordinator.shortName,
+      };
+    }
   }
   let options = {
     mode: "text",

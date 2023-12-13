@@ -3,9 +3,11 @@ const ApiError = require("../error/ApiError");
 const { fillOldReport } = require("../fs/excel");
 const { makeUniqueDirectory } = require("../fs/dirAPI");
 const { createWord } = require("../fs/docx");
+const { DEBUG } = require("../emias/constants");
 
 class RequestsController {
   async create(req, res, next) {
+    const plugStaffId = 170;
     const {
       emiasPatientId,
       isRean,
@@ -33,17 +35,19 @@ class RequestsController {
             ...request.dataValues,
             PatientId: patientId,
             UserId: userId,
-            staffId: staffIds[request.emiasRequestNumber],
+            staffId: staffIds[request.emiasRequestNumber] || plugStaffId,
             ReanimationPeriodId: newReanimationPeriodId,
           },
         });
         requests[req.id] = { ...req };
-        if (req._options.isNewRecord && req.status !== "Canceled") {
+        if (req._options.isNewRecord) {
           newRequestNumbers.push(req.emiasRequestNumber);
         }
       }
       const respond = (success) => {
-        console.log("res", success);
+        if (DEBUG) {
+          console.log(new Date().toLocaleString("ru"), "success", success);
+        }
         res.json({ success: success, requests });
       };
       if (newRequestNumbers.length) {
@@ -77,7 +81,7 @@ class RequestsController {
           respond(success);
         });
       } else {
-        respond(true)
+        respond(true);
       }
     } catch (e) {
       next(ApiError.badRequest(e.message));

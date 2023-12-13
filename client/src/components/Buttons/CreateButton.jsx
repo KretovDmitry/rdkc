@@ -2,17 +2,18 @@ import React, { useEffect, useState } from "react";
 import s from "./CreateButton.module.css";
 import { createPatient } from "../../app/api/patientsAPI";
 import { createRequests } from "../../app/api/requestsAPI";
-import {useDispatch, useSelector} from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../../features/users/usersSlice";
 import { createReanimationPeriods } from "../../app/api/reanimationPeriodsAPI";
-import {selectRequestsByPatient, setRequestCreatedById} from "../../features/requests/requestsSlice";
-import { selectReanimationPeriodById } from "../../features/reanimationPeriods/reanimationPeriodsSlice";
 import {
-  selectAllSchedule,
-} from "../../features/schedules/scheduleSlice";
+  selectRequestsByPatient,
+  setRequestCreatedById,
+} from "../../features/requests/requestsSlice";
+import { selectReanimationPeriodById } from "../../features/reanimationPeriods/reanimationPeriodsSlice";
+import { selectAllSchedule } from "../../features/schedules/scheduleSlice";
 
 const CreateButton = ({ patientId, isRean, isAdult }) => {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
   const user = useSelector(selectUser);
   const allSchedule = useSelector(selectAllSchedule);
   const [buttonClass, setButtonClass] = useState(null);
@@ -53,12 +54,14 @@ const CreateButton = ({ patientId, isRean, isAdult }) => {
     });
     const staffIds = {};
     for (const request of requestsForPatient) {
-      const specialist = currentStaff.find(
-        (record) =>
-          record.staff.emiasSpecialty === request.specialty &&
-          record.staff.forAdults === isAdult,
-      );
-      staffIds[request.emiasRequestNumber] = specialist.staffId;
+      if (request.status === "Queued") {
+        const specialist = currentStaff.find(
+          (record) =>
+            record.staff.emiasSpecialty === request.specialty &&
+            record.staff.forAdults === isAdult,
+        );
+        staffIds[request.emiasRequestNumber] = specialist.staffId;
+      }
     }
     try {
       const { dataValues: patient } = await createPatient(patientId);
@@ -75,7 +78,7 @@ const CreateButton = ({ patientId, isRean, isAdult }) => {
         setButtonClass("validate");
         setDisabled(true);
         for (const request of requestsForPatient) {
-          dispatch(setRequestCreatedById(request.emiasRequestNumber))
+          dispatch(setRequestCreatedById(request.emiasRequestNumber));
         }
       } else {
         setButtonClass(null);
