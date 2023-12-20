@@ -60,7 +60,9 @@ const CreateButton = ({ patientId, isRean, isAdult }) => {
             record.staff.emiasSpecialty === request.specialty &&
             record.staff.forAdults === isAdult,
         );
-        staffIds[request.emiasRequestNumber] = specialist.staffId;
+        staffIds[request.emiasRequestNumber] = specialist
+          ? specialist.staffId
+          : null;
       }
     }
     try {
