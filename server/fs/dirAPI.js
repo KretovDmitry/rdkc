@@ -2,16 +2,16 @@ const { mkdir, existsSync } = require("node:fs");
 const { join } = require("node:path");
 const { ANSWERS_FOLDER, MONTHS } = require("../emias/constants");
 
-const date = new Date();
-const currentMonth = date.getMonth();
-
-const pathForCurrentMonth = `Z:\\Пациенты все\\Пациенты 2023\\${
-  currentMonth + 1
-} ${MONTHS[currentMonth]}`;
-
 // const pathForCurrentMonth = `Z:\\Пациенты все\\Пациенты 2023\\13 Тест`;
 
 function createFolderName(name, birthDate) {
+  const date = new Date();
+  const curMonth = date.getMonth();
+  const curMonthDir =
+    curMonth < 9
+      ? `0${curMonth + 1} ${MONTHS[curMonth]}`
+      : `${curMonth + 1} ${MONTHS[curMonth]}`;
+  const pathForCurrentMonth = `Z:\\Пациенты все\\Пациенты ${date.getFullYear()}\\${curMonthDir}`;
   if (birthDate.slice(-1) === ".") {
     return join(pathForCurrentMonth, name + " " + birthDate.slice(0, -1));
   } else {

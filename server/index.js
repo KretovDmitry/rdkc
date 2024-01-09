@@ -5,7 +5,6 @@ const cors = require("cors");
 const router = require("./routes/index");
 const errorHandler = require("./middleware/ErrorHandlingMiddleware");
 const { main, emiasAPI } = require("./emias/emiasAPI");
-const {fillOldReport} = require("./fs/excel");
 
 const PORT = process.env.PORT || 5000;
 
