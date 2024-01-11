@@ -298,6 +298,14 @@ async function getHospitalizationId(
   if (hospitalizations.length === 1) return hospitalizations[0]["object_value"];
   const hospitalization = hospitalizations.find((obj) => {
     try {
+      // Check for declined hospitalization
+      const hospitalizationTitle = obj.title;
+      const hospitalizationTitleArr = hospitalizationTitle.split(" / ");
+      if (
+        hospitalizationTitleArr[hospitalizationTitleArr.length - 1] === "Отказ"
+      ) {
+        return false;
+      }
       // Find first hospitalization in DSC server response
       // excluding a possible transfer to another hospital after submitting the application
       const dateString = obj.date;
