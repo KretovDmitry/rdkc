@@ -15,7 +15,7 @@ function capitalize(str) {
   if (typeof str === "string") {
     const words = str.split(" ");
     const capitalized = words.map(
-      (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+      (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     );
     return capitalized.join(" ");
   } else {
@@ -46,7 +46,7 @@ async function getCookies() {
   });
   const rawCookie = response.headers["set-cookie"];
   emias.defaults.headers.common["Cookie"] = rawCookie.map((el) =>
-    el.slice(0, el.indexOf(";")),
+    el.slice(0, el.indexOf(";"))
   );
 }
 async function login(login, psw) {
@@ -60,7 +60,7 @@ async function login(login, psw) {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-    },
+    }
   );
 }
 async function getPatients(payload) {
@@ -72,7 +72,7 @@ async function getPatients(payload) {
         ? "REANIMATION"
         : payload.MedService_id === "500801000003930"
         ? "TMK"
-        : "CHILDREN",
+        : "CHILDREN"
     );
   }
   try {
@@ -84,7 +84,7 @@ async function getPatients(payload) {
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
           Accept: "*/*",
         },
-      },
+      }
     );
     return response.data.data;
   } catch (e) {
@@ -117,58 +117,68 @@ async function getAllPatients() {
     },
   ];
   const all = [];
+  const patients = {};
+  const requests = {};
+
+  // make requests to the emias server to collect all patients
   for (const p of patientsPayload) {
     const response = await getPatients(p);
     // if (!response) return 0;
     all.push(...response);
   }
+
+  // select already collected once
   const currentRequests = await CurrentRequest.findAll();
+
   if (DEBUG) {
     console.log(
       new Date().toLocaleString("ru"),
-      "\nAll requests at the moment:",
+      "Emias:",
       all.length,
-      "\nAlready collected requests:",
-      currentRequests.length,
+      "\tCurrent:",
+      currentRequests.length
     );
   }
-  if (all.length <= currentRequests.length && currentRequests.length) {
-    const allSavedAndSameStatus = all.some((record) => {
+
+  // compare statuses every time except
+  // there are new requests (all > current)
+  // or serever filtered out yesterday's requests (all < current)
+  if (all.length === currentRequests.length) {
+    const statusChanged = all.some((record) => {
       const saved = currentRequests.find(
-        (req) => req["emiasRequestNumber"] === record["EvnDirection_Num"],
+        (req) => req["emiasRequestNumber"] === record["EvnDirection_Num"]
       );
-      if (saved && saved["status"] !== record["EvnDirectionStatus_SysNick"]) {
-        if (DEBUG) {
-          console.log(
-            new Date().toLocaleString("ru"),
-            "STATUS for",
-            capitalize(record["Person_FIO"]),
-            `(${saved["emiasRequestNumber"]})`,
-            "HAS CHANGED:",
-            saved["status"],
-            "=>",
-            record["EvnDirectionStatus_SysNick"],
-          );
-        }
-        return true;
-      } else {
-        if (DEBUG && !saved) {
-          console.log(
-            new Date().toLocaleString("ru"),
-            "A new request has been found",
-          );
-        }
-        return !saved;
+      if (!saved) {
+        return false;
       }
+      return saved["status"] !== record["EvnDirectionStatus_SysNick"];
     });
-    if (!allSavedAndSameStatus) {
-      console.log("----------- NOTHING NEW -----------");
+    if (DEBUG && !statusChanged) {
+      console.log(new Date().toLocaleString("ru"), "Status hasn't changed");
       return 0;
     }
   }
-  const patients = {};
-  const requests = {};
 
+  // log about new request just for fun
+  if (all.length - currentRequests.length > 0) {
+    if (DEBUG) {
+      console.log(
+        new Date().toLocaleString("ru"),
+        "New request:",
+        all.length - currentRequests.length
+      );
+    }
+  }
+
+  // log about server reset just for fun
+  if (all.length - currentRequests.length < 0) {
+    if (DEBUG) {
+      console.log(new Date().toLocaleString("ru"), "Daily server reset");
+    }
+  }
+
+  // collect data from main requests table, i.e.
+  // EvnUslugaTelemed & loadWorkPlaceGrid response
   for (const record of all) {
     if (!Object.keys(patients).includes(record["Person_id"])) {
       patients[record["Person_id"]] = {
@@ -181,7 +191,7 @@ async function getAllPatients() {
 
     const icdCode = record["Diag_FullName"].slice(
       0,
-      record["Diag_FullName"].indexOf(". "),
+      record["Diag_FullName"].indexOf(". ")
     );
     const isIcdCodeIncluded = ICD_CODES.includes(icdCode);
 
@@ -217,7 +227,7 @@ async function loadPatientData(id) {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-      },
+      }
     );
     const patientData = response.data[0];
     const patient = {};
@@ -250,7 +260,7 @@ async function loadPatientData(id) {
       console.error(
         new Date().toLocaleString("ru"),
         `loadPatientData ${id} ERROR:`,
-        e?.code || e,
+        e?.code || e
       );
     }
   }
@@ -258,13 +268,13 @@ async function loadPatientData(id) {
 async function getHospitalizationId(
   emiasPatientId,
   creationDate,
-  creationTime,
+  creationTime
 ) {
   if (DEBUG) {
     console.log(
       new Date().toLocaleString("ru"),
       "getHospitalizationId for",
-      emiasPatientId,
+      emiasPatientId
     );
   }
   const response = await emias.post(
@@ -289,7 +299,7 @@ async function getHospitalizationId(
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-    },
+    }
   );
   const hospitalizations = response.data.filter((obj) => {
     // Find all hospitalizations
@@ -317,7 +327,7 @@ async function getHospitalizationId(
       const creationTimeArr = creationTime.split(":");
       const requestCreationDate = new Date(
         ...creationDateArr,
-        ...creationTimeArr,
+        ...creationTimeArr
       );
       return requestCreationDate > date;
     } catch (e) {
@@ -331,7 +341,7 @@ async function getHospitalizationId(
 async function getPatientEmkData(
   emiasPatientId,
   objectValue,
-  emiasRequestNumber,
+  emiasRequestNumber
 ) {
   if (DEBUG) {
     console.log(
@@ -339,7 +349,7 @@ async function getPatientEmkData(
       "getPatientEmkData for",
       emiasPatientId,
       "with object value",
-      objectValue,
+      objectValue
     );
   }
   try {
@@ -359,7 +369,7 @@ async function getPatientEmkData(
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-      },
+      }
     );
     const evnPsItems = response.data.map["EvnPS"].item;
     const evnPsItem = evnPsItems.find((obj) => obj["EvnPS_id"] === objectValue);
@@ -384,7 +394,7 @@ async function getPatientEmkData(
       console.error(
         new Date().toLocaleString("ru"),
         "getPatientEmkData ERROR:",
-        e?.code || e,
+        e?.code || e
       );
     }
     return { evnSection: null, error: true };
@@ -394,7 +404,7 @@ function getReanimationPeriod(
   emiasPatientId,
   objectValue,
   currentEvent,
-  error,
+  error
 ) {
   const reanPeriod = {};
   if (error) {
@@ -407,7 +417,7 @@ function getReanimationPeriod(
       console.log(
         new Date().toLocaleString("ru"),
         `Reanimation Period for ${emiasPatientId}:`,
-        reanPeriod,
+        reanPeriod
       );
     }
     return reanPeriod;
@@ -437,7 +447,7 @@ function getReanimationPeriod(
     console.log(
       new Date().toLocaleString("ru"),
       `Reanimation Period for ${emiasPatientId}:`,
-      reanPeriod,
+      reanPeriod
     );
   }
   return reanPeriod;
@@ -449,7 +459,7 @@ async function fetchEmiasData() {
         console.log(
           new Date().toLocaleString("ru"),
           "Cookie:",
-          emias.defaults.headers.common["Cookie"],
+          emias.defaults.headers.common["Cookie"]
         );
       }
       await getCookies();
@@ -457,7 +467,7 @@ async function fetchEmiasData() {
         console.log(
           new Date().toLocaleString("ru"),
           "Cookie:",
-          emias.defaults.headers.common["Cookie"],
+          emias.defaults.headers.common["Cookie"]
         );
       }
       await login(account.login, account.psw);
@@ -473,7 +483,7 @@ async function fetchEmiasData() {
       const hospitalizationId = await getHospitalizationId(
         id,
         requestForPatient.emiasCreationDate,
-        requestForPatient.emiasCreationTime,
+        requestForPatient.emiasCreationTime
       );
       let reanPeriod = {};
       if (!hospitalizationId) {
@@ -486,13 +496,13 @@ async function fetchEmiasData() {
         const { evnSection, error } = await getPatientEmkData(
           id,
           hospitalizationId,
-          response.patients[id].requestsIds[0],
+          response.patients[id].requestsIds[0]
         );
         reanPeriod = getReanimationPeriod(
           id,
           hospitalizationId,
           evnSection,
-          error,
+          error
         );
       }
       reanimationPeriods[id] = reanPeriod;
@@ -501,7 +511,7 @@ async function fetchEmiasData() {
         if (DEBUG) {
           console.log(
             new Date().toLocaleString("ru"),
-            `Patient ${id} Request ${requestId} isRean = ${reanPeriod.isRean}; error = ${reanPeriod.error}`,
+            `Patient ${id} Request ${requestId} isRean = ${reanPeriod.isRean}; error = ${reanPeriod.error}`
           );
         }
       }
@@ -524,7 +534,7 @@ async function main() {
           new Date().toLocaleString("ru"),
           "----------------------Patient with FIO:",
           patient.fio,
-          "was saved to the database----------------------",
+          "was saved to the database----------------------"
         );
       }
     }
@@ -542,7 +552,7 @@ async function main() {
           new Date().toLocaleString("ru"),
           "----------------------Request with emiasRequestNumber:",
           request.emiasRequestNumber,
-          "was saved to the database----------------------",
+          "was saved to the database----------------------"
         );
       }
     }
@@ -554,7 +564,7 @@ async function main() {
           new Date().toLocaleString("ru"),
           "----------------------Reanimation Period with emiasId:",
           period.emiasId,
-          "was saved to the database----------------------",
+          "was saved to the database----------------------"
         );
       }
     }
@@ -573,7 +583,7 @@ const emiasAPI = () => {
       console.log(
         new Date().toLocaleString("ru"),
         "Function main call counter inside setInterval:",
-        counter,
+        counter
       );
     }
     counter++;
