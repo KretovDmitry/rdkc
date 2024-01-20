@@ -151,7 +151,11 @@ async function getAllPatients() {
       if (!saved) {
         return false;
       }
-      return saved["status"] !== record["EvnDirectionStatus_SysNick"];
+      const status =
+        record["EvnDirectionStatus_SysNick"] === "DirNew"
+          ? "Queued"
+          : record["EvnDirectionStatus_SysNick"];
+      return saved["status"] !== status;
     });
     if (DEBUG && !statusChanged) {
       console.log(new Date().toLocaleString("ru"), "Status hasn't changed");
