@@ -199,6 +199,14 @@ async function getAllPatients() {
     );
     const isIcdCodeIncluded = ICD_CODES.includes(icdCode);
 
+    let queuedAnalog = false;
+    if (
+      record["EvnDirectionStatus_SysNick"] === "DirNew" ||
+      record["EvnDirectionStatus_SysNick"] === "DirZap"
+    ) {
+      queuedAnalog = true;
+    }
+
     requests[record["EvnDirection_Num"]] = {
       emiasPatientId: record["Person_id"],
       emiasRequestNumber: record["EvnDirection_Num"],
@@ -211,10 +219,7 @@ async function getAllPatients() {
       specialty: record["LpuSectionProfile_Name"],
       tmk: record["MedService_id"] === "500801000003930",
       childrenCenter: record["MedService_id"] === "500801000010630",
-      status:
-        record["EvnDirectionStatus_SysNick"] === "DirNew"
-          ? "Queued"
-          : record["EvnDirectionStatus_SysNick"],
+      status: queuedAnalog ? "Queued" : record["EvnDirectionStatus_SysNick"],
     };
   }
   return { patients, requests };
