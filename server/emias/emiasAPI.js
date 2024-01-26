@@ -393,6 +393,9 @@ async function getPatientEmkData(
       const directions = directionsSection.item;
       return directions.some(hasCurrentRequest);
     });
+    if (!evnSection) {
+      return { evnSection: null, error: true } 
+    }
     return { evnSection, error: false };
   } catch (e) {
     if (DEBUG) {
@@ -412,7 +415,7 @@ function getReanimationPeriod(
   error
 ) {
   const reanPeriod = {};
-  if (error) {
+  if (error || !currentEvent) {
     reanPeriod.emiasPatientId = emiasPatientId;
     reanPeriod.hasReanPeriod = false;
     reanPeriod.isRean = false;
