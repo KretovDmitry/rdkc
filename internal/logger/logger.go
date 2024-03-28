@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"rdkc/internal/config"
 	"runtime/debug"
 	"sync"
 
+	"github.com/KretovDmitry/rdkc/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"

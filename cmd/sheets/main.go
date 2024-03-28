@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"rdkc/internal/config"
-	"rdkc/internal/sheets"
 	"time"
+
+	"github.com/KretovDmitry/rdkc/internal/config"
+	"github.com/KretovDmitry/rdkc/internal/sheets"
 )
 
 func main() {

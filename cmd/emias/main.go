@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"rdkc/internal/config"
-	"rdkc/internal/emias"
+
+	"github.com/KretovDmitry/rdkc/internal/config"
+	"github.com/KretovDmitry/rdkc/internal/emias"
 )
 
 func main() {

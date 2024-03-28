@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"rdkc/internal/config"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/KretovDmitry/rdkc/internal/config"
 )
 
 type authResponse struct {

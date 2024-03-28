@@ -3,13 +3,13 @@ package sheets
 import (
 	"context"
 	"fmt"
-	"rdkc/internal/config"
-	"rdkc/internal/logger"
-	"rdkc/internal/sheets/client"
-	"rdkc/internal/sheets/models"
 	"strings"
 	"time"
 
+	"github.com/KretovDmitry/rdkc/internal/config"
+	"github.com/KretovDmitry/rdkc/internal/logger"
+	"github.com/KretovDmitry/rdkc/internal/sheets/client"
+	"github.com/KretovDmitry/rdkc/internal/sheets/models"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/option"
@@ -319,6 +319,12 @@ func (app *app) GetContacts(ctx context.Context) (map[models.Specialty]map[strin
 			email     string
 			ok        bool
 		)
+
+		if len(names.Values[i]) == 0 &&
+			len(phones.Values[i]) == 0 &&
+			len(emails.Values[i]) == 0 {
+			continue
+		}
 
 		if len(specialties.Values[i]) > 0 {
 			specialty, ok = specialties.Values[i][0].(string)

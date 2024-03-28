@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"rdkc/internal/config"
 
+	"github.com/KretovDmitry/rdkc/internal/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

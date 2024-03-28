@@ -1,4 +1,4 @@
-module rdkc
+module github.com/KretovDmitry/rdkc
 
 go 1.21.5
 
