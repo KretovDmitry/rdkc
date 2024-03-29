@@ -13,7 +13,7 @@ import (
 
 const (
 	defaultHost = "0.0.0.0"
-	defaultPort = 7667
+	defaultPort = 5000
 )
 
 type netAddress struct {
@@ -73,10 +73,7 @@ func (u *emiasUser) Set(credentials string) error {
 }
 
 var (
-	AddrToRun = NewNetAddress()
-	// The file token.json stores the user's access and refresh tokens, and is
-	// created automatically when the authorization flow completes for the first
-	// time.
+	AddrToRun       = NewNetAddress()
 	CredentialsFile string
 	TokenFile       string
 	SpreadsheetId   string
@@ -109,10 +106,15 @@ func Parse(ctx context.Context) error {
 		}
 	}
 
+	// The SHEETS_CREDENTIALS must contain user's credentials for Google
+	// spreadsheets in JSON format.
 	if CredentialsFile, ok = os.LookupEnv("SHEETS_CREDENTIALS"); !ok {
 		return errors.New("empty SHEETS_CREDENTIALS")
 	}
 
+	// The file token.json stores the user's access and refresh tokens, and is
+	// created automatically when the authorization flow completes for the first
+	// time.
 	TokenFile = path.Join(path.Dir(CredentialsFile), "token.json")
 	if tokenFile := os.Getenv("SHEETS_TOKEN"); tokenFile != "" {
 		TokenFile = tokenFile

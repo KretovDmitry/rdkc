@@ -24,14 +24,14 @@ func main() {
 		log.Fatalf("unable to create app: %v", err)
 	}
 
-	// shifts, err := sheetsInstance.GetSchedule(ctx)
-	// if err != nil {
-	// 	log.Fatalf("unable to retrieve shifts: %v", err)
-	// }
+	shifts, err := sheetsInstance.GetSchedule(ctx)
+	if err != nil {
+		log.Fatalf("unable to retrieve shifts: %v", err)
+	}
 
-	// for _, shift := range shifts {
-	// 	fmt.Println(*shift)
-	// }
+	for _, shift := range shifts {
+		fmt.Printf("%#v\n", *shift)
+	}
 
 	contacts, err := sheetsInstance.GetContacts(ctx)
 	if err != nil {

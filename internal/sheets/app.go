@@ -8,20 +8,20 @@ import (
 
 	"github.com/KretovDmitry/rdkc/internal/config"
 	"github.com/KretovDmitry/rdkc/internal/logger"
+	"github.com/KretovDmitry/rdkc/internal/models"
 	"github.com/KretovDmitry/rdkc/internal/sheets/client"
-	"github.com/KretovDmitry/rdkc/internal/sheets/models"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 )
 
-type app struct {
+type App struct {
 	sheets *sheets.Service
 	logger *zap.Logger
 }
 
-func New(ctx context.Context) (*app, error) {
+func New(ctx context.Context) (*App, error) {
 	client, err := client.Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve http client: %w", err)
@@ -32,30 +32,24 @@ func New(ctx context.Context) (*app, error) {
 		return nil, fmt.Errorf("unable to retrieve Sheets client: %w", err)
 	}
 
-	return &app{sheets: srv, logger: logger.Get()}, nil
+	return &App{sheets: srv, logger: logger.Get()}, nil
 }
 
-func (app *app) GetSchedule(ctx context.Context) (models.Shifts, error) {
-	// eg, ctx := errgroup.WithContext(ctx)
-
-	specColumns, err := app.MapColumnsBySpecialty(ctx)
+func (app *App) GetSchedule(ctx context.Context) (models.Shifts, error) {
+	specColumns, err := app.mapColumnsBySpecialty(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to map columns by specialty: %w", err)
 	}
-
-	// fmt.Println(specColumns)
-	// firstDayOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
 
 	allShifts, err := app.getShifts(ctx, specColumns)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve shifts: %w", err)
 	}
 
-	// schedule := make(map[time.Time]models.Shift, daysInMonth*len(cols))
 	return allShifts, nil
 }
 
-func (app *app) getValues(ctx context.Context, readRange string) (*sheets.ValueRange, error) {
+func (app *App) getValues(ctx context.Context, readRange string) (*sheets.ValueRange, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -70,7 +64,7 @@ func (app *app) getValues(ctx context.Context, readRange string) (*sheets.ValueR
 	return resp, nil
 }
 
-func (app *app) MapColumnsBySpecialty(ctx context.Context) (map[models.Specialty]models.Column, error) {
+func (app *App) mapColumnsBySpecialty(ctx context.Context) (map[models.Specialty]models.Column, error) {
 	start := time.Now()
 
 	// first row contains specialties
@@ -98,7 +92,7 @@ func (app *app) MapColumnsBySpecialty(ctx context.Context) (map[models.Specialty
 	return specColumns, nil
 }
 
-func (app *app) getShifts(ctx context.Context, cols map[models.Specialty]models.Column) (models.Shifts, error) {
+func (app *App) getShifts(ctx context.Context, cols map[models.Specialty]models.Column) (models.Shifts, error) {
 	start := time.Now()
 	eg, ctx := errgroup.WithContext(ctx)
 	daysInMonth := daysInMonth(time.Now())
@@ -145,7 +139,7 @@ func (app *app) getShifts(ctx context.Context, cols map[models.Specialty]models.
 	return allShifts, eg.Wait()
 }
 
-func (app *app) getColShifts(
+func (app *App) getColShifts(
 	ctx context.Context, spec models.Specialty, col models.Column, out chan<- models.Shifts,
 ) error {
 	now := time.Now()
@@ -181,6 +175,7 @@ func (app *app) getColShifts(
 			app.logger.Error(
 				"unfilled specialty column",
 				zap.Any("col", col),
+				zap.Any("spec", spec),
 				zap.Int("filled", len(resp.Values)),
 				zap.Int("expected", 2*daysInMonth),
 			)
@@ -197,7 +192,13 @@ func (app *app) getColShifts(
 	// general schema of a schedule column:
 	// N row: working time in format "start[hh:mm]-end[hh:mm]"
 	// N+1 row: specialist in format "LastName FirstName MiddleName"
-	day := 0
+	var (
+		lastName   string
+		firstName  string
+		middleName string
+		day        int
+	)
+
 	for i := 0; i < len(resp.Values); i += 2 {
 		specialist, ok := resp.Values[i+1][0].(string)
 		if !ok {
@@ -262,10 +263,27 @@ func (app *app) getColShifts(
 
 		// fmt.Println(start, end, s)
 
+		name := strings.Split(specialist, " ")
+		switch len(name) {
+		case 3:
+			lastName = name[0]
+			firstName = name[1]
+			middleName = name[2]
+		case 2:
+			lastName = name[0]
+			firstName = name[1]
+		case 1:
+			lastName = name[0]
+		case 0:
+			return fmt.Errorf("empty name at C[%s]R[%d]", col, i+1)
+		}
+
 		shifts = append(shifts, &models.Shift{
 			Staff: models.Staff{
-				FullName:  specialist,
-				Specialty: spec,
+				FirstName:  strings.TrimSpace(firstName),
+				LastName:   strings.TrimSpace(lastName),
+				MiddleName: strings.TrimSpace(middleName),
+				Specialty:  models.Specialty(strings.TrimSpace(string(spec))),
 			},
 			Start: start,
 			End:   end},
@@ -281,23 +299,32 @@ func (app *app) getColShifts(
 	}
 }
 
-func (app *app) GetContacts(ctx context.Context) (map[models.Specialty]map[string]*models.Staff, error) {
-	specialties, err := app.getValues(ctx, "Contacts!A:A")
+func (app *App) GetContacts(ctx context.Context) (map[models.Specialty][]*models.Staff, error) {
+	start := time.Now()
+
+	const (
+		specialtyCol = "A"
+		nameCol      = "B"
+		phoneCol     = "C"
+		emailCol     = "D"
+	)
+
+	specialties, err := app.getValues(ctx, fmt.Sprintf("Contacts!%[1]s:%[1]s", specialtyCol))
 	if err != nil {
 		return nil, fmt.Errorf("get values: %w", err)
 	}
 
-	names, err := app.getValues(ctx, "Contacts!B:B")
+	names, err := app.getValues(ctx, fmt.Sprintf("Contacts!%[1]s:%[1]s", nameCol))
 	if err != nil {
 		return nil, fmt.Errorf("get values: %w", err)
 	}
 
-	phones, err := app.getValues(ctx, "Contacts!C:C")
+	phones, err := app.getValues(ctx, fmt.Sprintf("Contacts!%[1]s:%[1]s", phoneCol))
 	if err != nil {
 		return nil, fmt.Errorf("get values: %w", err)
 	}
 
-	emails, err := app.getValues(ctx, "Contacts!D:D")
+	emails, err := app.getValues(ctx, fmt.Sprintf("Contacts!%[1]s:%[1]s", emailCol))
 	if err != nil {
 		return nil, fmt.Errorf("get values: %w", err)
 	}
@@ -309,22 +336,26 @@ func (app *app) GetContacts(ctx context.Context) (map[models.Specialty]map[strin
 		len(emails.Values),
 	)
 
-	contacts := make(map[models.Specialty]map[string]*models.Staff, 25)
+	contacts := make(map[models.Specialty][]*models.Staff, 25)
 
 	for i := 0; i < n; i++ {
-		var (
-			specialty string
-			name      string
-			phone     string
-			email     string
-			ok        bool
-		)
-
-		if len(names.Values[i]) == 0 &&
-			len(phones.Values[i]) == 0 &&
-			len(emails.Values[i]) == 0 {
+		if len(phones.Values[i]) == 0 ||
+			len(names.Values[i]) == 0 &&
+				len(phones.Values[i]) == 0 &&
+				len(emails.Values[i]) == 0 {
 			continue
 		}
+
+		var (
+			specialty  string
+			fullName   string
+			firstName  string
+			lastName   string
+			middleName string
+			phone      string
+			email      string
+			ok         bool
+		)
 
 		if len(specialties.Values[i]) > 0 {
 			specialty, ok = specialties.Values[i][0].(string)
@@ -334,10 +365,10 @@ func (app *app) GetContacts(ctx context.Context) (map[models.Specialty]map[strin
 				)
 			}
 		}
-		spec := models.Specialty(specialty)
+		spec := models.Specialty(strings.TrimSpace(specialty))
 
 		if len(names.Values[i]) > 0 {
-			name, ok = names.Values[i][0].(string)
+			fullName, ok = names.Values[i][0].(string)
 			if !ok {
 				return nil, fmt.Errorf(
 					"unable to assert C[B]R[%d] to string", i+1,
@@ -363,32 +394,46 @@ func (app *app) GetContacts(ctx context.Context) (map[models.Specialty]map[strin
 			}
 		}
 
-		var forChildren bool
+		forAdults := true
 		if strings.HasPrefix(specialty, "детский") {
-			forChildren = true
+			forAdults = false
 		}
 
 		if contacts[spec] == nil {
-			contacts[spec] = make(map[string]*models.Staff, 15)
+			contacts[spec] = make([]*models.Staff, 0, 15)
 		}
 
-		contacts[spec][name] = &models.Staff{
-			ID:          i + 1,
-			FullName:    name,
-			Phone:       phone,
-			Email:       email,
-			Specialty:   spec,
-			ForChildren: forChildren,
+		name := strings.Split(fullName, " ")
+		switch len(name) {
+		case 3:
+			lastName = name[0]
+			firstName = name[1]
+			middleName = name[2]
+		case 2:
+			lastName = name[0]
+			firstName = name[1]
+		case 1:
+			lastName = name[0]
+		case 0:
+			return nil, fmt.Errorf("empty name at C[%s]R[%d]", nameCol, i+1)
 		}
 
-		// fmt.Println(
-		// 	i,
-		// 	specialties.Values[i],
-		// 	names.Values[i],
-		// 	phones.Values[i],
-		// 	emails.Values[i],
-		// )
+		contacts[spec] = append(contacts[spec], &models.Staff{
+			ID:         i + 1,
+			FirstName:  strings.TrimSpace(firstName),
+			LastName:   strings.TrimSpace(lastName),
+			MiddleName: strings.TrimSpace(middleName),
+			Phone:      strings.TrimSpace(phone),
+			Email:      strings.TrimSpace(email),
+			Specialty:  spec,
+			ForAdults:  forAdults,
+		})
 	}
+
+	app.logger.Info(
+		"got all contacts from sheets",
+		zap.Duration("duration", time.Since(start)),
+	)
 
 	return contacts, nil
 }
