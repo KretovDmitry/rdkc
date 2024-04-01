@@ -33,20 +33,20 @@ func main() {
 		fmt.Printf("%#v\n", *shift)
 	}
 
-	contacts, err := sheetsInstance.GetContacts(ctx)
-	if err != nil {
-		log.Fatalf("unable to retrieve contacts: %v", err)
-	}
+	// contacts, err := sheetsInstance.GetContacts(ctx)
+	// if err != nil {
+	// 	log.Fatalf("unable to retrieve contacts: %v", err)
+	// }
 
-	for specialty, doctors := range contacts {
-		fmt.Printf("%[1]T: %[1]s\n", specialty)
-		fmt.Printf("%[1]T\n", doctors)
+	// for specialty, doctors := range contacts {
+	// 	fmt.Printf("%[1]T: %[1]s\n", specialty)
+	// 	fmt.Printf("%[1]T\n", doctors)
 
-		for _, doctor := range doctors {
-			fmt.Printf("%#v\n", *doctor)
-		}
-		fmt.Println()
-	}
+	// 	for _, doctor := range doctors {
+	// 		fmt.Printf("%#v\n", *doctor)
+	// 	}
+	// 	fmt.Println()
+	// }
 
 	fmt.Printf("execution time: %s\n", time.Since(begin))
 }

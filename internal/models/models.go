@@ -19,7 +19,7 @@ type (
 	}
 
 	Shift struct {
-		Staff Staff
+		Staff *Staff
 		Start time.Time
 		End   time.Time
 	}

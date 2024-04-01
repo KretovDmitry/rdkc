@@ -77,6 +77,9 @@ func (app *App) mapColumnsBySpecialty(ctx context.Context) (map[models.Specialty
 	specColumns := make(map[models.Specialty]models.Column, len(resp.Values))
 	for i, col := range resp.Values[0] {
 		if c, ok := col.(string); ok {
+			if c == "Дата" || c == "Координатор" {
+				continue
+			}
 			c = strings.TrimSpace(strings.ToLower(c))
 			t := convertToTitle(i + 1)
 			specColumns[models.Specialty(c)] = models.Column(t)
@@ -84,8 +87,8 @@ func (app *App) mapColumnsBySpecialty(ctx context.Context) (map[models.Specialty
 	}
 
 	app.logger.Info(
-		"specialties collected",
-		zap.Int("quantity", len(specColumns)),
+		"got schedule specialties",
+		zap.Int("specialties", len(specColumns)),
 		zap.Duration("duration", time.Since(start)),
 	)
 
@@ -130,13 +133,17 @@ func (app *App) getShifts(ctx context.Context, cols map[models.Specialty]models.
 		})
 	}
 
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
 	app.logger.Info(
 		"got all shifts",
 		zap.Duration("duration", time.Since(start)),
 	)
 
 	// wait for completion and return the first error (if any)
-	return allShifts, eg.Wait()
+	return allShifts, nil
 }
 
 func (app *App) getColShifts(
@@ -192,14 +199,13 @@ func (app *App) getColShifts(
 	// general schema of a schedule column:
 	// N row: working time in format "start[hh:mm]-end[hh:mm]"
 	// N+1 row: specialist in format "LastName FirstName MiddleName"
-	var (
-		lastName   string
-		firstName  string
-		middleName string
-		day        int
-	)
-
+	var day int
 	for i := 0; i < len(resp.Values); i += 2 {
+		var (
+			lastName   string
+			firstName  string
+			middleName string
+		)
 		specialist, ok := resp.Values[i+1][0].(string)
 		if !ok {
 			return fmt.Errorf(
@@ -207,14 +213,14 @@ func (app *App) getColShifts(
 			)
 		}
 
-		t, ok := resp.Values[i][0].(string)
+		workingTime, ok := resp.Values[i][0].(string)
 		if !ok {
 			return fmt.Errorf(
 				"unable to assert C[%s]R[%d] to string", col, i+1,
 			)
 		}
 
-		startEnd := strings.Split(t, "-")
+		startEnd := strings.Split(workingTime, "-")
 
 		start, err := time.Parse("15:04", startEnd[0])
 		if err != nil {
@@ -276,14 +282,20 @@ func (app *App) getColShifts(
 			lastName = name[0]
 		case 0:
 			return fmt.Errorf("empty name at C[%s]R[%d]", col, i+1)
+		default:
+			lastName = name[0]
+			firstName = name[1]
+			middleName = strings.Join(name[2:], " ")
 		}
 
 		shifts = append(shifts, &models.Shift{
-			Staff: models.Staff{
+			Staff: &models.Staff{
 				FirstName:  strings.TrimSpace(firstName),
 				LastName:   strings.TrimSpace(lastName),
 				MiddleName: strings.TrimSpace(middleName),
-				Specialty:  models.Specialty(strings.TrimSpace(string(spec))),
+				Specialty: models.Specialty(
+					strings.TrimPrefix(strings.TrimSpace(string(spec)), "детский "),
+				),
 			},
 			Start: start,
 			End:   end},
@@ -338,7 +350,7 @@ func (app *App) GetContacts(ctx context.Context) (map[models.Specialty][]*models
 
 	contacts := make(map[models.Specialty][]*models.Staff, 25)
 
-	for i := 0; i < n; i++ {
+	for i := 1; i < n; i++ {
 		if len(phones.Values[i]) == 0 ||
 			len(names.Values[i]) == 0 &&
 				len(phones.Values[i]) == 0 &&
@@ -361,17 +373,20 @@ func (app *App) GetContacts(ctx context.Context) (map[models.Specialty][]*models
 			specialty, ok = specialties.Values[i][0].(string)
 			if !ok {
 				return nil, fmt.Errorf(
-					"unable to assert C[A]R[%d] to string", i+1,
+					"unable to assert C[%s]R[%d] to string",
+					specialtyCol,
+					i+1,
 				)
 			}
 		}
-		spec := models.Specialty(strings.TrimSpace(specialty))
 
 		if len(names.Values[i]) > 0 {
 			fullName, ok = names.Values[i][0].(string)
 			if !ok {
 				return nil, fmt.Errorf(
-					"unable to assert C[B]R[%d] to string", i+1,
+					"unable to assert C[%s]R[%d] to string",
+					nameCol,
+					i+1,
 				)
 			}
 		}
@@ -380,7 +395,9 @@ func (app *App) GetContacts(ctx context.Context) (map[models.Specialty][]*models
 			phone, ok = phones.Values[i][0].(string)
 			if !ok {
 				return nil, fmt.Errorf(
-					"unable to assert C[C]R[%d] to string", i+1,
+					"unable to assert C[%s]R[%d] to string",
+					phoneCol,
+					i+1,
 				)
 			}
 		}
@@ -389,15 +406,19 @@ func (app *App) GetContacts(ctx context.Context) (map[models.Specialty][]*models
 			email, ok = emails.Values[i][0].(string)
 			if !ok {
 				return nil, fmt.Errorf(
-					"unable to assert C[D]R[%d] to string", i+1,
+					"unable to assert C[%s]R[%d] to string",
+					emailCol,
+					i+1,
 				)
 			}
 		}
 
 		forAdults := true
 		if strings.HasPrefix(specialty, "детский") {
+			specialty = strings.TrimPrefix(specialty, "детский ")
 			forAdults = false
 		}
+		spec := models.Specialty(strings.TrimSpace(specialty))
 
 		if contacts[spec] == nil {
 			contacts[spec] = make([]*models.Staff, 0, 15)
@@ -416,6 +437,10 @@ func (app *App) GetContacts(ctx context.Context) (map[models.Specialty][]*models
 			lastName = name[0]
 		case 0:
 			return nil, fmt.Errorf("empty name at C[%s]R[%d]", nameCol, i+1)
+		default:
+			lastName = name[0]
+			firstName = name[1]
+			middleName = strings.Join(name[2:], " ")
 		}
 
 		contacts[spec] = append(contacts[spec], &models.Staff{
@@ -432,6 +457,7 @@ func (app *App) GetContacts(ctx context.Context) (map[models.Specialty][]*models
 
 	app.logger.Info(
 		"got all contacts from sheets",
+		zap.Int("specialties", len(contacts)),
 		zap.Duration("duration", time.Since(start)),
 	)
 

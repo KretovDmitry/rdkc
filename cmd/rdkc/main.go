@@ -53,30 +53,9 @@ func main() {
 	// case <-time.After(30 * time.Second):
 	// 	l.Fatal("graceful shutdown timed out.. forcing exit")
 	// }
-	app, err := initService(serverCtx)
+	_, err := initService(serverCtx)
 	if err != nil {
 		l.Fatal("init service failed", zap.Error(err))
-	}
-
-	// staff, err := app.GetStaff(serverCtx)
-	// if err != nil {
-	// 	l.Fatal("get staff failed", zap.Error(err))
-	// }
-
-	// for specialty, doctors := range staff {
-	// 	fmt.Printf("%[1]T: %[1]s\n", specialty)
-	// 	fmt.Printf("%[1]T\n", doctors)
-
-	// 	// fmt.Println(doctors)
-	// 	for _, doctor := range doctors {
-	// 		fmt.Printf("%#v\n", *doctor)
-	// 	}
-	// 	fmt.Println()
-	// }
-
-	_, err = app.GetSchedule(serverCtx)
-	if err != nil {
-		l.Fatal("get schedule failed", zap.Error(err))
 	}
 }
 

@@ -26,9 +26,15 @@ func New(ctx context.Context, db *sql.DB) (*App, error) {
 		return nil, fmt.Errorf("unable to retrieve Sheets client: %w", err)
 	}
 
-	return &App{
+	instance := &App{
 		db:     db,
 		sheets: sheets,
 		logger: logger.Get(),
-	}, nil
+	}
+
+	if err := instance.UpdateSchedule(ctx); err != nil {
+		return nil, fmt.Errorf("update schedule failed: %w", err)
+	}
+
+	return instance, nil
 }
