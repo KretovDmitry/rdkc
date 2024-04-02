@@ -9,58 +9,68 @@ import (
 	"time"
 
 	"github.com/KretovDmitry/rdkc/internal/models"
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 )
 
 func (app *App) UpdateSchedule(ctx context.Context) error {
-	shifts, err := app.GetSchedule(ctx)
+	shifts, err := app.getSchedule(ctx)
 	if err != nil {
 		return fmt.Errorf("get schedule failed: %w", err)
 	}
 
-	if err := app.InsertSchedule(ctx, shifts); err != nil {
+	if err := app.insertSchedule(ctx, shifts); err != nil {
 		return fmt.Errorf("insert schedule failed: %w", err)
 	}
 
 	return nil
 }
 
-func (app *App) GetSchedule(ctx context.Context) (models.Shifts, error) {
+// пetSchedule retrieves the schedule from the Google Sheets and the database.
+// It returns a list of shifts and any errors encountered.
+func (app *App) getSchedule(ctx context.Context) (models.Shifts, error) {
+	// Get the staff from the Google Sheets.
 	sheetsStaff, err := app.sheets.GetContacts(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get contacts: %w", err)
 	}
 
-	DBStaff, err := app.GetStaff(ctx)
+	// Get the staff from the database.
+	DBStaff, err := app.getStaff(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get staff: %w", err)
 	}
 
+	// Create a list to hold the new staff members.
 	newStaff := make([]*models.Staff, 0)
 
+	// Loop through the specialties in the Google Sheets.
 	for sheetsSpecialty, sheetsSpecs := range sheetsStaff {
+		// Do not add new specialty if it's not present in DB.
+		// Google Sheets contains many trash records.
 		if len(DBStaff[sheetsSpecialty]) == 0 {
-			app.logger.Info("absent specialty", zap.String("spec", string(sheetsSpecialty)))
+			app.logger.Info("absent specialty",
+				zap.String("spec", string(sheetsSpecialty)))
 			continue
 		}
 		for _, sheetsSpec := range sheetsSpecs {
+			// The only unique constraint of the staff table is phone column.
+			// Except of course id and unused emias login field.
+			// Persons with unfilled phone field from sheets are skipped.
+			// So the new employee will only be added to the DB,
+			// when he gets phone filled in the spreadsheet.
 			if sheetsSpec.Phone == "" {
 				continue
 			}
 			var found bool
 			for _, DBSpec := range DBStaff[sheetsSpecialty] {
-				// The only unique constraint of the staff table.
-				// Except of course id and unused emias login field.
-				// Persons with unfilled phone field from sheets are skipped.
-				// So the new employee will only be added to the DB,
-				// when he gets phone filled in the spreadsheet.
 				if sheetsSpec.Phone == DBSpec.Phone {
 					found = true
 					break
 				}
 			}
+			// Emias specialty (the same but in other form) is not
+			// present in the sheets, but is unique for each specialty.
 			if !found {
 				sheetsSpec.EmiasSpecialty = DBStaff[sheetsSpecialty][0].EmiasSpecialty
 				newStaff = append(newStaff, sheetsSpec)
@@ -69,28 +79,36 @@ func (app *App) GetSchedule(ctx context.Context) (models.Shifts, error) {
 	}
 
 	if len(newStaff) != 0 {
-		if err := app.InsertStaff(ctx, newStaff); err != nil {
+		// Insert the new staff members into the database.
+		if err := app.insertStaff(ctx, newStaff); err != nil {
 			return nil, fmt.Errorf("unable to insert staff: %w", err)
 		}
 
-		DBStaff, err = app.GetStaff(ctx)
+		// Get the updated staff list from the database.
+		DBStaff, err = app.getStaff(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get staff: %w", err)
 		}
 	}
 
+	// Get the schedule from the Google Sheets.
 	shifts, err := app.sheets.GetSchedule(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get schedule: %w", err)
 	}
 
+	// Loop over shifts to populate employee with actual
+	// information from database.
 	for _, shift := range shifts {
+		// Return error if any specialty doesn't exists in DB.
 		if DBStaff[shift.Staff.Specialty] == nil {
 			return nil, fmt.Errorf(
 				"no such specialty in staff table: %s",
 				shift.Staff.Specialty,
 			)
 		}
+		// Substitute uncompleted sheets employee record with
+		// actual one from database.
 		for _, spec := range DBStaff[shift.Staff.Specialty] {
 			if spec.FirstName == shift.Staff.FirstName &&
 				spec.LastName == shift.Staff.LastName &&
@@ -101,27 +119,49 @@ func (app *App) GetSchedule(ctx context.Context) (models.Shifts, error) {
 		}
 	}
 
-	for _, shift := range shifts {
-		fmt.Printf(
-			"ID: %d\tSPEC: %s\tFN: %s\tLN: %s\t MN:%s\tSTART: %s\tEND: %s\tADULTS: %t\n",
-			shift.Staff.ID,
-			shift.Staff.Specialty,
-			shift.Staff.FirstName,
-			shift.Staff.LastName,
-			shift.Staff.MiddleName,
-			shift.Start.String(),
-			shift.End.String(),
-			shift.Staff.ForAdults,
-		)
-	}
+	// Debug print.
+	// for _, shift := range shifts {
+	// 	fmt.Printf(
+	// 		"ID: %d\tSPEC: %s\tFN: %s\tLN: %s\t MN:%s\tSTART: %s\tEND: %s\tADULTS: %t\n",
+	// 		shift.Staff.ID,
+	// 		shift.Staff.Specialty,
+	// 		shift.Staff.FirstName,
+	// 		shift.Staff.LastName,
+	// 		shift.Staff.MiddleName,
+	// 		shift.Start.String(),
+	// 		shift.End.String(),
+	// 		shift.Staff.ForAdults,
+	// 	)
+	// }
 
 	return shifts, nil
 }
 
-func (app *App) InsertStaff(ctx context.Context, new []*models.Staff) error {
+func (app *App) insertStaff(ctx context.Context, new []*models.Staff) error {
 	start := time.Now()
+	var values []string
+	var args []any
+	for i, n := range new {
+		base := i * 8
+		params := fmt.Sprintf(
+			"($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			base+1, base+2, base+3, base+4,
+			base+5, base+6, base+7, base+8,
+		)
+		values = append(values, params)
+		args = append(args,
+			string(n.Specialty),
+			n.EmiasSpecialty,
+			n.LastName,
+			n.FirstName,
+			n.MiddleName,
+			n.Email,
+			n.Phone,
+			n.ForAdults,
+		)
+	}
 
-	const q = `
+	q := `
 		INSERT INTO staff
 			(
 				specialty,
@@ -133,50 +173,9 @@ func (app *App) InsertStaff(ctx context.Context, new []*models.Staff) error {
 				cell_phone_number,
 				for_adults
 			)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`
+		VALUES ` + strings.Join(values, ",") + `;`
 
-	tx, err := app.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	stmt, err := tx.PrepareContext(ctx, q)
-	if err != nil {
-		return fmt.Errorf("prepare statement: %w", err)
-	}
-
-	for _, s := range new {
-		_, err := stmt.ExecContext(ctx,
-			s.Specialty,
-			s.EmiasSpecialty,
-			s.LastName,
-			s.FirstName,
-			s.MiddleName,
-			s.Email,
-			s.Phone,
-			s.ForAdults,
-		)
-		if err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) {
-				if pgErr.Code == pgerrcode.UniqueViolation {
-					return fmt.Errorf("duplicate employee: %w", formatPgError(pgErr))
-				}
-				// create a new error with additional context
-				return fmt.Errorf("save url with query (%s): %w",
-					formatQuery(q), formatPgError(pgErr),
-				)
-			}
-
-			return fmt.Errorf("save url with query (%s): %w", formatQuery(q), err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
-	}
+	_, err := app.db.ExecContext(ctx, q, args...)
 
 	app.logger.Info(
 		"inserted staff",
@@ -184,9 +183,11 @@ func (app *App) InsertStaff(ctx context.Context, new []*models.Staff) error {
 		zap.Duration("duration", time.Since(start)),
 	)
 
-	return nil
+	return err
 }
-func (app *App) GetStaff(ctx context.Context) (map[models.Specialty][]*models.Staff, error) {
+
+// getStaff retrieves all staff from the database.
+func (app *App) getStaff(ctx context.Context) (map[models.Specialty][]*models.Staff, error) {
 	start := time.Now()
 
 	const q = `
@@ -208,13 +209,12 @@ func (app *App) GetStaff(ctx context.Context) (map[models.Specialty][]*models.St
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			// Create a new error with additional context.
 			return nil, fmt.Errorf("retrieve staff with query (%s): %w",
 				formatQuery(q), formatPgError(pgErr),
 			)
 		}
-
-		return nil, fmt.Errorf("retrieve staff with query (%s): %w", formatQuery(q), err)
+		return nil, fmt.Errorf("retrieve staff with query (%s): %w",
+			formatQuery(q), err)
 	}
 
 	all := make(map[models.Specialty][]*models.Staff, 25)
@@ -242,7 +242,8 @@ func (app *App) GetStaff(ctx context.Context) (map[models.Specialty][]*models.St
 			&s.ForAdults,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("retrieve staff with query (%s): %w", formatQuery(q), err)
+			return nil, fmt.Errorf("retrieve staff with query (%s): %w",
+				formatQuery(q), err)
 		}
 		if specialty.Valid {
 			s.Specialty = models.Specialty(specialty.String)
@@ -273,12 +274,14 @@ func (app *App) GetStaff(ctx context.Context) (map[models.Specialty][]*models.St
 	}
 
 	if err = rows.Close(); err != nil {
-		return nil, fmt.Errorf("close rows with query (%s): %w", formatQuery(q), err)
+		return nil, fmt.Errorf("close rows with query (%s): %w",
+			formatQuery(q), err)
 	}
 
 	// Rows.Err will report the last error encountered by Rows.Scan.
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("retrieve staff with query (%s): %w", formatQuery(q), err)
+		return nil, fmt.Errorf("retrieve staff with query (%s): %w",
+			formatQuery(q), err)
 	}
 
 	if len(all) == 0 {
@@ -294,57 +297,50 @@ func (app *App) GetStaff(ctx context.Context) (map[models.Specialty][]*models.St
 	return all, nil
 }
 
-func (app *App) InsertSchedule(ctx context.Context, shifts models.Shifts) error {
+func (app *App) insertSchedule(ctx context.Context, shifts models.Shifts) error {
 	start := time.Now()
 
-	_, err := app.db.ExecContext(ctx, `TRUNCATE TABLE schedules`)
+	row := app.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM schedules;")
+
+	var numberOfOldShifts int
+	row.Scan(&numberOfOldShifts)
+	if err := row.Err(); err != nil {
+		return fmt.Errorf("failed to count rows in schedules: %w", err)
+	}
+
+	if numberOfOldShifts == len(shifts) {
+		app.logger.Info(
+			"number of rows in schedules is the same as in the shifts",
+			zap.Int("rows", len(shifts)),
+			zap.Duration("duration", time.Since(start)),
+		)
+		return nil
+	}
+
+	_, err := app.db.ExecContext(ctx, `TRUNCATE TABLE schedules;`)
 	if err != nil {
 		return fmt.Errorf("failed to truncate schedules: %w", err)
 	}
 
-	const q = `
+	var values []string
+	var args []any
+	for i, s := range shifts {
+		base := i * 3
+		params := fmt.Sprintf("($%d, $%d, $%d)", base+1, base+2, base+3)
+		values = append(values, params)
+		args = append(args, s.Start, s.End, s.Staff.ID)
+	}
+
+	q := `
 		INSERT INTO schedules
 			(
 				start,
 				"end",
 				staff_id
 			)
-		VALUES ($1, $2, $3)
-	`
+		VALUES ` + strings.Join(values, ",") + `;`
 
-	tx, err := app.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	stmt, err := tx.PrepareContext(ctx, q)
-	if err != nil {
-		return fmt.Errorf("prepare statement: %w", err)
-	}
-
-	for _, s := range shifts {
-		_, err := stmt.ExecContext(ctx,
-			s.Start,
-			s.End,
-			s.Staff.ID,
-		)
-		if err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) {
-				// create a new error with additional context
-				return fmt.Errorf("save schedule with query (%s): %w",
-					formatQuery(q), formatPgError(pgErr),
-				)
-			}
-
-			return fmt.Errorf("save schedules with query (%s): %w", formatQuery(q), err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
-	}
+	_, err = app.db.ExecContext(ctx, q, args...)
 
 	app.logger.Info(
 		"inserted all shifts into schedules",
@@ -352,5 +348,5 @@ func (app *App) InsertSchedule(ctx context.Context, shifts models.Shifts) error 
 		zap.Duration("duration", time.Since(start)),
 	)
 
-	return nil
+	return err
 }

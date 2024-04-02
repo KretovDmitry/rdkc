@@ -50,10 +50,8 @@ func (app *App) GetSchedule(ctx context.Context) (models.Shifts, error) {
 }
 
 func (app *App) getValues(ctx context.Context, readRange string) (*sheets.ValueRange, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	default:
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
 	resp, err := app.sheets.Spreadsheets.Values.Get(config.SpreadsheetId, readRange).Do()
@@ -87,7 +85,7 @@ func (app *App) mapColumnsBySpecialty(ctx context.Context) (map[models.Specialty
 	}
 
 	app.logger.Info(
-		"got schedule specialties",
+		"got sheets schedule for each column",
 		zap.Int("specialties", len(specColumns)),
 		zap.Duration("duration", time.Since(start)),
 	)

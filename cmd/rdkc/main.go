@@ -72,7 +72,7 @@ func initService(ctx context.Context) (*app.App, error) {
 
 	app, err := app.New(ctx, db)
 	if err != nil {
-		return nil, fmt.Errorf("new handler context: %w", err)
+		return nil, fmt.Errorf("new app instance: %w", err)
 	}
 
 	return app, nil
