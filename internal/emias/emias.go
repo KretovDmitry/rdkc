@@ -1,10 +1,14 @@
 package emias
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
+
+	"github.com/KretovDmitry/rdkc/internal/logger"
+	"go.uber.org/zap"
 )
 
 const (
@@ -14,6 +18,7 @@ const (
 
 type emiasClient struct {
 	*http.Client
+	logger *zap.Logger
 }
 
 func NewClient() (*emiasClient, error) {
@@ -22,22 +27,25 @@ func NewClient() (*emiasClient, error) {
 		return nil, fmt.Errorf("create new cookie jar: %w", err)
 	}
 
-	return &emiasClient{&http.Client{
-		Jar: jar,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			fmt.Println("emias redirect: ", req.URL)
-			return nil
+	return &emiasClient{
+		&http.Client{
+			Jar: jar,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				fmt.Println("emias redirect: ", req.URL)
+				return nil
+			},
+			Timeout: time.Minute * 5,
 		},
-		Timeout: time.Minute * 5,
-	}}, nil
+		logger.Get(),
+	}, nil
 }
 
-func (c *emiasClient) Synchronize() error {
-	if err := c.authorize(); err != nil {
+func (c *emiasClient) Synchronize(ctx context.Context) error {
+	if err := c.authorize(ctx); err != nil {
 		return fmt.Errorf("authorize: %w", err)
 	}
 
-	if err := c.loadServicesData(); err != nil {
+	if err := c.loadServicesData(ctx); err != nil {
 		return fmt.Errorf("loadGrid: %w", err)
 	}
 

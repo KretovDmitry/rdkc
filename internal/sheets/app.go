@@ -98,7 +98,7 @@ func (app *App) getShifts(ctx context.Context, cols map[models.Specialty]models.
 	eg, ctx := errgroup.WithContext(ctx)
 	daysInMonth := daysInMonth(time.Now())
 
-	// at least one specialist works in a day
+	// at least one specialist works per day
 	allShifts := make(models.Shifts, 0, daysInMonth*len(cols))
 	resultChan := make(chan models.Shifts, len(cols))
 
@@ -131,6 +131,7 @@ func (app *App) getShifts(ctx context.Context, cols map[models.Specialty]models.
 		})
 	}
 
+	// wait for completion and return the first error (if any)
 	if err := eg.Wait(); err != nil {
 		return nil, err
 	}
@@ -140,7 +141,6 @@ func (app *App) getShifts(ctx context.Context, cols map[models.Specialty]models.
 		zap.Duration("duration", time.Since(start)),
 	)
 
-	// wait for completion and return the first error (if any)
 	return allShifts, nil
 }
 
@@ -148,6 +148,7 @@ func (app *App) getColShifts(
 	ctx context.Context, spec models.Specialty, col models.Column, out chan<- models.Shifts,
 ) error {
 	now := time.Now()
+	columnWithDates := models.Column("A")
 	firstDayOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
 	daysInMonth := daysInMonth(now)
 
@@ -176,7 +177,7 @@ func (app *App) getColShifts(
 
 	// do not process unfilled column
 	if len(resp.Values) < 2*daysInMonth || len(resp.Values)%2 == 1 {
-		if col != "A" {
+		if col != columnWithDates {
 			app.logger.Error(
 				"unfilled specialty column",
 				zap.Any("col", col),
@@ -189,8 +190,7 @@ func (app *App) getColShifts(
 		return nil
 	}
 
-	// fmt.Println(resp.Values)
-
+	// omit working time row by dividing by 2
 	shifts := make(models.Shifts, 0, len(resp.Values)/2)
 
 	// parse each row
@@ -264,8 +264,6 @@ func (app *App) getColShifts(
 			start = date.Add(time.Hour * time.Duration(start.Hour())).In(time.UTC)
 			end = date.AddDate(0, 0, 1).Add(time.Hour*time.Duration(end.Hour()) - time.Second).In(time.UTC)
 		}
-
-		// fmt.Println(start, end, s)
 
 		name := strings.Split(specialist, " ")
 		switch len(name) {
