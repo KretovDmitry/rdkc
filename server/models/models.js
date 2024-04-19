@@ -10,35 +10,35 @@ const User = sequelize.define(
     lastName: { type: DataTypes.STRING, allowNull: false },
     firstName: { type: DataTypes.STRING, allowNull: false },
     middleName: { type: DataTypes.STRING, allowNull: false },
-      fullName: {
-          type: DataTypes.VIRTUAL,
-          get() {
-              if (this.lastName && this.firstName && this.middleName) {
-                  return `${this.lastName} ${this.firstName} ${this.middleName}`;
-              } else if (this.lastName && this.firstName) {
-                  return `${this.lastName} ${this.firstName}`;
-              } else {
-                  return `${this.lastName}`;
-              }
-          },
+    fullName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        if (this.lastName && this.firstName && this.middleName) {
+          return `${this.lastName} ${this.firstName} ${this.middleName}`;
+        } else if (this.lastName && this.firstName) {
+          return `${this.lastName} ${this.firstName}`;
+        } else {
+          return `${this.lastName}`;
+        }
       },
-      shortName: {
-          type: DataTypes.VIRTUAL,
-          get() {
-              if (this.lastName && this.firstName && this.middleName) {
-                  return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
-              } else if (this.lastName && this.firstName) {
-                  return `${this.lastName} ${this.firstName[0]}.`;
-              } else {
-                  return `${this.lastName}`;
-              }
-          },
+    },
+    shortName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        if (this.lastName && this.firstName && this.middleName) {
+          return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+        } else if (this.lastName && this.firstName) {
+          return `${this.lastName} ${this.firstName[0]}.`;
+        } else {
+          return `${this.lastName}`;
+        }
       },
+    },
     dateOfBirth: DataTypes.DATEONLY,
     cellPhoneNumber: { type: DataTypes.STRING, unique: true },
     role: { type: DataTypes.STRING, defaultValue: "USER", allowNull: false },
   },
-  { underscored: true },
+  { underscored: true }
 );
 
 const Staff = sequelize.define(
@@ -50,30 +50,30 @@ const Staff = sequelize.define(
     lastName: { type: DataTypes.STRING, allowNull: false },
     firstName: DataTypes.STRING,
     middleName: DataTypes.STRING,
-      fullName: {
-          type: DataTypes.VIRTUAL,
-          get() {
-              if (this.lastName && this.firstName && this.middleName) {
-                  return `${this.lastName} ${this.firstName} ${this.middleName}`;
-              } else if (this.lastName && this.firstName) {
-                  return `${this.lastName} ${this.firstName}`;
-              } else {
-                  return `${this.lastName}`;
-              }
-          },
+    fullName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        if (this.lastName && this.firstName && this.middleName) {
+          return `${this.lastName} ${this.firstName} ${this.middleName}`;
+        } else if (this.lastName && this.firstName) {
+          return `${this.lastName} ${this.firstName}`;
+        } else {
+          return `${this.lastName}`;
+        }
       },
-      shortName: {
-          type: DataTypes.VIRTUAL,
-          get() {
-              if (this.lastName && this.firstName && this.middleName) {
-                  return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
-              } else if (this.lastName && this.firstName) {
-                  return `${this.lastName} ${this.firstName[0]}.`;
-              } else {
-                  return `${this.lastName}`;
-              }
-          },
+    },
+    shortName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        if (this.lastName && this.firstName && this.middleName) {
+          return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+        } else if (this.lastName && this.firstName) {
+          return `${this.lastName} ${this.firstName[0]}.`;
+        } else {
+          return `${this.lastName}`;
+        }
       },
+    },
     dateOfBirth: DataTypes.DATEONLY,
     // мейл не уникален для некоторых отделений
     email: DataTypes.STRING,
@@ -83,7 +83,12 @@ const Staff = sequelize.define(
     departmentHead: { type: DataTypes.BOOLEAN, defaultValue: false },
     forAdults: { type: DataTypes.BOOLEAN, defaultValue: true },
   },
-  { freezeTableName: true, underscored: true },
+  {
+    freezeTableName: true,
+    underscored: true,
+    // don't add the timestamp attributes (updatedAt, createdAt)
+    timestamps: false,
+  }
 );
 
 const Patient = sequelize.define(
@@ -133,7 +138,7 @@ const Patient = sequelize.define(
     deadDate: { type: DataTypes.STRING, defaultValue: null },
     deadTime: { type: DataTypes.STRING, defaultValue: null },
   },
-  { underscored: true },
+  { underscored: true }
 );
 
 const Schedule = sequelize.define(
@@ -143,7 +148,11 @@ const Schedule = sequelize.define(
     start: DataTypes.DATE,
     end: DataTypes.DATE,
   },
-  { underscored: true },
+  {
+    underscored: true,
+    // don't add the timestamp attributes (updatedAt, createdAt)
+    timestamps: false,
+  }
 );
 
 const Request = sequelize.define(
@@ -193,7 +202,7 @@ const Request = sequelize.define(
       defaultValue: null,
     },
   },
-  { underscored: true },
+  { underscored: true }
 );
 
 const CurrentPatient = sequelize.define(
@@ -204,30 +213,30 @@ const CurrentPatient = sequelize.define(
     lastName: DataTypes.STRING,
     firstName: DataTypes.STRING,
     middleName: DataTypes.STRING,
-      fullName: {
-          type: DataTypes.VIRTUAL,
-          get() {
-              if (this.lastName && this.firstName && this.middleName) {
-                  return `${this.lastName} ${this.firstName} ${this.middleName}`;
-              } else if (this.lastName && this.firstName) {
-                  return `${this.lastName} ${this.firstName}`;
-              } else {
-                  return `${this.lastName}`;
-              }
-          },
+    fullName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        if (this.lastName && this.firstName && this.middleName) {
+          return `${this.lastName} ${this.firstName} ${this.middleName}`;
+        } else if (this.lastName && this.firstName) {
+          return `${this.lastName} ${this.firstName}`;
+        } else {
+          return `${this.lastName}`;
+        }
       },
-      shortName: {
-          type: DataTypes.VIRTUAL,
-          get() {
-              if (this.lastName && this.firstName && this.middleName) {
-                  return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
-              } else if (this.lastName && this.firstName) {
-                  return `${this.lastName} ${this.firstName[0]}.`;
-              } else {
-                  return `${this.lastName}`;
-              }
-          },
+    },
+    shortName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        if (this.lastName && this.firstName && this.middleName) {
+          return `${this.lastName} ${this.firstName[0]}.${this.middleName[0]}.`;
+        } else if (this.lastName && this.firstName) {
+          return `${this.lastName} ${this.firstName[0]}.`;
+        } else {
+          return `${this.lastName}`;
+        }
       },
+    },
     birthDate: DataTypes.STRING,
     age: DataTypes.STRING,
     isAdult: DataTypes.BOOLEAN,
@@ -243,7 +252,7 @@ const CurrentPatient = sequelize.define(
     deadDate: { type: DataTypes.STRING, defaultValue: null },
     deadTime: { type: DataTypes.STRING, defaultValue: null },
   },
-  { underscored: true },
+  { underscored: true }
 );
 
 const CurrentRequest = sequelize.define(
@@ -294,7 +303,7 @@ const CurrentRequest = sequelize.define(
       defaultValue: null,
     },
   },
-  { underscored: true },
+  { underscored: true }
 );
 
 const ReanimationPeriod = sequelize.define(
@@ -313,7 +322,7 @@ const ReanimationPeriod = sequelize.define(
     result: DataTypes.STRING,
     isRean: DataTypes.BOOLEAN,
   },
-  { underscored: true },
+  { underscored: true }
 );
 
 const CurrentReanimationPeriod = sequelize.define(
@@ -332,7 +341,7 @@ const CurrentReanimationPeriod = sequelize.define(
     result: DataTypes.STRING,
     isRean: DataTypes.BOOLEAN,
   },
-  { underscored: true },
+  { underscored: true }
 );
 
 Patient.hasMany(Request, {
