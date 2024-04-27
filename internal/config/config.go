@@ -62,10 +62,10 @@ func (u *emiasUser) String() string {
 func (u *emiasUser) Set(credentials string) error {
 	cr := strings.Split(credentials, ",")
 	if len(cr) != 2 {
-		return errors.New("need emias user in the form: login,password")
+		return errors.New("need emias user in form: login,password")
 	}
 	if cr[0] == "" || cr[1] == "" {
-		return errors.New("need emias user in the form: login,password")
+		return errors.New("need emias user in form: login,password")
 	}
 	u.Login = cr[0]
 	u.Password = cr[1]
@@ -100,8 +100,7 @@ func Parse(ctx context.Context) error {
 	}
 
 	if credentials := os.Getenv("EMIAS_USER"); credentials != "" {
-		err := EmiasUser.Set(credentials)
-		if err != nil {
+		if err := EmiasUser.Set(credentials); err != nil {
 			return fmt.Errorf("invalid EMIAS_USER: %w", err)
 		}
 	}
@@ -120,6 +119,7 @@ func Parse(ctx context.Context) error {
 		TokenFile = tokenFile
 	}
 
+	// Must contain ID of the Google Sheets with schedules.
 	if SpreadsheetId, ok = os.LookupEnv("SPREADSHEET_ID"); !ok {
 		return errors.New("empty SPREADSHEET_ID")
 	}

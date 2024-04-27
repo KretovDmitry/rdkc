@@ -1,8 +1,10 @@
 package emias
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -16,10 +18,14 @@ type authResponse struct {
 	Success bool `json:"success,omitempty"`
 }
 
-func (c *emiasClient) authorize() error {
-	defer logCallDuration(time.Now())
+func (client *emiasClient) authorize(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
-	if err := c.getCookies(); err != nil {
+	defer client.logCallDuration(time.Now())
+
+	if err := client.getCookies(ctx); err != nil {
 		return fmt.Errorf("get cookies: %w", err)
 	}
 
@@ -50,7 +56,7 @@ func (c *emiasClient) authorize() error {
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
 
-	resp, err := c.Do(request)
+	resp, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("do auth request: %w", err)
 	}
@@ -64,10 +70,49 @@ func (c *emiasClient) authorize() error {
 	}
 
 	if !res.Success {
-		return fmt.Errorf(`authorization failed with:
-	login: %s
-	password: %s`,
-			config.EmiasUser.Login, config.EmiasUser.Password)
+		return fmt.Errorf("authorization failed: %s", config.EmiasUser)
+	}
+
+	return nil
+}
+
+// getCookies establishes a session with the emias server
+// by setting provided cookies in the client's cookie store (cookieJar)
+func (client *emiasClient) getCookies(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	defer client.logCallDuration(time.Now())
+
+	getCookiesURL := url.URL{
+		Scheme: scheme,
+		Host:   host,
+	}
+
+	q := getCookiesURL.Query()
+	q.Set("c", "portal")
+	q.Set("m", "promed")
+	q.Set("lang", "ru")
+	getCookiesURL.RawQuery = q.Encode()
+
+	req, err := http.NewRequest(http.MethodGet, getCookiesURL.String(), http.NoBody)
+	if err != nil {
+		return fmt.Errorf("create new request: %w", err)
+	}
+
+	req.Header.Set("connection", "keep-alive")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("do get cookies request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// always read entire resp.Body to reuse TCP-connection
+	_, err = io.Copy(io.Discard, resp.Body)
+	if err != nil {
+		return fmt.Errorf("discard body: %w", err)
 	}
 
 	return nil
