@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/KretovDmitry/rdkc/internal/application/services/emias"
 	"github.com/KretovDmitry/rdkc/internal/config"
-	"github.com/KretovDmitry/rdkc/internal/emias"
-	"github.com/KretovDmitry/rdkc/internal/logger"
+	"github.com/KretovDmitry/rdkc/pkg/logger"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	sqldblogger "github.com/simukti/sqldb-logger"
 )
@@ -55,7 +55,7 @@ func run() error {
 		_ = logger.Sync()
 	}()
 
-	emias, err := emias.NewClient(cfg, logger)
+	emias, err := emias.New(cfg, logger)
 	if err != nil {
 		return fmt.Errorf("new emias client: %w", err)
 	}

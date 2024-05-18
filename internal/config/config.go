@@ -1,11 +1,9 @@
 package config
 
 import (
-	"errors"
 	"flag"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -41,12 +39,13 @@ type (
 		// Number of simultaneous calls to the emias service.
 		Burst int `yaml:"burst" env-default:"10"`
 		// Authentication credentials.
-		Credentials `env:"EMIAS_CREDENTIALS"`
+		Login    string `env:"EMIAS_LOGIN"`
+		Password string `env:"EMIAS_PASSWORD"`
 	}
 	// Config for HTTP server.
 	HTTPServer struct {
 		// The server startup address.
-		Address string `yaml:"run_address" env:"RUN_ADDRESS" env-default:"127.0.0.1:8080"`
+		Address string `yaml:"run_address" env:"RUN_ADDRESS" env-default:"127.0.0.1:5000"`
 		// Read header timeout.
 		HeaderTimeout time.Duration `yaml:"header_timeout" env-default:"5s"`
 		// Idle timeout.
@@ -57,7 +56,7 @@ type (
 	// Config for application's logger.
 	Logger struct {
 		// Path to store log files.
-		Path string `ymal:"log_path" env:"LOG_PATH"`
+		Path string `yaml:"log_path" env:"LOG_PATH"`
 		// Application logging level.
 		Level string `yaml:"level" env:"LOG_LEVEL" env-default:"info"`
 		// Log files details.
@@ -119,7 +118,6 @@ func MustLoad() *Config {
 	flag.StringVar(&cfg.HTTPServer.Address, "a", cfg.HTTPServer.Address, "server startup address")
 	flag.StringVar(&cfg.DSN, "d", cfg.DSN, "server data source name")
 	flag.StringVar(&cfg.Logger.Level, "l", cfg.Logger.Level, "logger level")
-	flag.Var(&cfg.Emias.Credentials, "u", "emias credentials: login,password")
 	flag.Parse()
 
 	// Read environment variables.
@@ -128,21 +126,4 @@ func MustLoad() *Config {
 	}
 
 	return &cfg
-}
-
-func (c *Credentials) Set(credentials string) error {
-	cr := strings.Split(credentials, ",")
-	if len(cr) != 2 {
-		return errors.New("need emias user in form: login,password")
-	}
-	if cr[0] == "" || cr[1] == "" {
-		return errors.New("need emias user in form: login,password")
-	}
-	c.Login = cr[0]
-	c.Password = cr[1]
-	return nil
-}
-
-func (c *Credentials) String() string {
-	return c.Login
 }
