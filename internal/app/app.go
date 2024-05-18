@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/KretovDmitry/rdkc/internal/logger"
@@ -18,12 +19,12 @@ type App struct {
 
 func New(ctx context.Context, db *sql.DB) (*App, error) {
 	if db == nil {
-		return nil, fmt.Errorf("db is nil")
+		return nil, errors.New("db is nil")
 	}
 
 	sheets, err := sheets.New(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve Sheets client: %w", err)
+		return nil, fmt.Errorf("unable to init sheets service: %w", err)
 	}
 
 	instance := &App{
@@ -32,7 +33,7 @@ func New(ctx context.Context, db *sql.DB) (*App, error) {
 		logger: logger.Get(),
 	}
 
-	if err := instance.UpdateSchedule(ctx); err != nil {
+	if err = instance.UpdateSchedule(ctx); err != nil {
 		return nil, fmt.Errorf("update schedule failed: %w", err)
 	}
 

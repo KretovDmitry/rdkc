@@ -64,9 +64,10 @@ func (app *App) getValues(ctx context.Context, readRange string) (*sheets.ValueR
 
 func (app *App) mapColumnsBySpecialty(ctx context.Context) (map[models.Specialty]models.Column, error) {
 	start := time.Now()
+	nextMonth := start.AddDate(0, 1, 0).Month()
 
 	// first row contains specialties
-	readRange := fmt.Sprintf("%s!1:1", start.Month())
+	readRange := fmt.Sprintf("%s!1:1", nextMonth)
 	resp, err := app.getValues(ctx, readRange)
 	if err != nil {
 		return nil, err
@@ -147,7 +148,7 @@ func (app *App) getShifts(ctx context.Context, cols map[models.Specialty]models.
 func (app *App) getColShifts(
 	ctx context.Context, spec models.Specialty, col models.Column, out chan<- models.Shifts,
 ) error {
-	now := time.Now()
+	now := time.Now().AddDate(0, 1, 0)
 	columnWithDates := models.Column("A")
 	firstDayOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
 	daysInMonth := daysInMonth(now)
@@ -294,7 +295,8 @@ func (app *App) getColShifts(
 				),
 			},
 			Start: start,
-			End:   end},
+			End:   end,
+		},
 		)
 	}
 

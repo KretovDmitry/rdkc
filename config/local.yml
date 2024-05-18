@@ -1,0 +1,22 @@
+http_server:
+  run_address: "127.0.0.1:5000"
+  timeout: "5s"
+  idle_timeout: "60s"
+emias:
+  host: "hospital.emias.mosreg.ru"
+  scheme: "https"
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+  timeout: "60s"
+  every: "10s"
+  burst: 10
+logger:
+  log_path: "/var/log/rdkc/app.log"
+  level: "info"
+  max_size_mb: 50
+  max_backups: 10
+  max_age_days: 30
+jwt:
+  signing_key: "LxsKJywDL5O5PvgODZhBH12KE6k2yL8E"
+  expiration: "24h"
+password_hash_cost: 14
+migrations_path: "."

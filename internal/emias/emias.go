@@ -2,26 +2,26 @@ package emias
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/cookiejar"
-	"time"
 
+	"github.com/KretovDmitry/rdkc/internal/config"
 	"github.com/KretovDmitry/rdkc/internal/logger"
-	"go.uber.org/zap"
-)
-
-const (
-	scheme = "https"
-	host   = "hospital.emias.mosreg.ru"
 )
 
 type emiasClient struct {
 	*http.Client
-	logger *zap.Logger
+	config *config.Config
+	logger logger.Logger
 }
 
-func NewClient() (*emiasClient, error) {
+func NewClient(config *config.Config, logger logger.Logger) (*emiasClient, error) {
+	if config == nil {
+		return nil, errors.New("nil dependency: config")
+	}
+
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, fmt.Errorf("create new cookie jar: %w", err)
@@ -34,9 +34,10 @@ func NewClient() (*emiasClient, error) {
 				fmt.Println("emias redirect: ", req.URL)
 				return nil
 			},
-			Timeout: time.Minute * 5,
+			Timeout: config.Emias.Timeout,
 		},
-		logger.Get(),
+		config,
+		logger,
 	}, nil
 }
 

@@ -79,12 +79,12 @@ func (r serviceResponseItem) String() string {
 }
 
 // loadServicesData loads data form each service of the emias
-func (client *emiasClient) loadServicesData(ctx context.Context) error {
+func (c *emiasClient) loadServicesData(ctx context.Context) error {
 	servicesID := []string{"11380", "500801000003930", "500801000010630"}
 
-	work := serviceRequestGenerator(servicesID)
+	work := c.serviceRequestGenerator(servicesID)
 
-	defer client.logCallDuration(time.Now())
+	defer c.logCallDuration(time.Now())
 	eg, ctx := errgroup.WithContext(ctx)
 
 	resultChan := make(chan []serviceResponseItem, len(servicesID))
@@ -110,7 +110,7 @@ func (client *emiasClient) loadServicesData(ctx context.Context) error {
 	for req := range work {
 		req := req
 		eg.Go(func() error {
-			if err := client.loadServiceData(req, resultChan); err != nil {
+			if err := c.loadServiceData(req, resultChan); err != nil {
 				return err
 			}
 			return nil
@@ -128,10 +128,10 @@ func (client *emiasClient) loadServicesData(ctx context.Context) error {
 	return nil
 }
 
-func (client *emiasClient) loadServiceData(r *http.Request, resultChan chan []serviceResponseItem) error {
-	defer client.logCallDuration(time.Now())
+func (c *emiasClient) loadServiceData(r *http.Request, resultChan chan []serviceResponseItem) error {
+	defer c.logCallDuration(time.Now())
 
-	response, err := client.Do(r)
+	response, err := c.Do(r)
 	if err != nil {
 		return fmt.Errorf("do a request: %w", err)
 	}
@@ -153,10 +153,10 @@ func (client *emiasClient) loadServiceData(r *http.Request, resultChan chan []se
 	return nil
 }
 
-func serviceRequestGenerator(servicesID []string) chan *http.Request {
+func (c *emiasClient) serviceRequestGenerator(servicesID []string) chan *http.Request {
 	gridURL := url.URL{
-		Scheme: scheme,
-		Host:   host,
+		Scheme: c.config.Emias.Scheme,
+		Host:   c.config.Emias.Host,
 	}
 
 	q := gridURL.Query()
@@ -177,7 +177,7 @@ func serviceRequestGenerator(servicesID []string) chan *http.Request {
 			req, _ := http.NewRequest(http.MethodPost, gridURL.String(), strings.NewReader(data.Encode()))
 
 			req.Header.Set("connection", "keep-alive")
-			req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36")
+			req.Header.Set("user-agent", c.config.Emias.UserAgent)
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
 

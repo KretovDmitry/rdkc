@@ -2,78 +2,67 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 
-	"github.com/KretovDmitry/rdkc/internal/app"
 	"github.com/KretovDmitry/rdkc/internal/config"
-	"github.com/KretovDmitry/rdkc/internal/db/postgres"
+	"github.com/KretovDmitry/rdkc/internal/emias"
 	"github.com/KretovDmitry/rdkc/internal/logger"
-	"go.uber.org/zap"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	sqldblogger "github.com/simukti/sqldb-logger"
 )
 
-func main() {
-	l := logger.Get()
-	defer l.Sync()
+// Version indicates the current version of the application.
+var Version = "1.0.0"
 
+func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	// Server run context
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 	defer serverStopCtx()
 
-	// mux, err := initService(serverCtx)
-	// if err != nil {
-	// 	l.Fatal("init service failed", zap.Error(err))
-	// }
+	// Load application configurations.
+	cfg := config.MustLoad()
 
-	// server := &http.Server{
-	// 	Addr:    config.AddrToRun.String(),
-	// 	Handler: mux,
-	// }
+	// Create root logger tagged with server version.
+	logger := logger.New(cfg).With(serverCtx, "version", Version)
 
-	// sig := make(chan os.Signal, 1)
-	// signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt)
-	// go func() {
-	// 	<-sig
-
-	// 	err := server.Shutdown(serverCtx)
-	// 	if err != nil {
-	// 		l.Fatal("graceful shutdown failed", zap.Error(err))
-	// 	}
-	// 	serverStopCtx()
-	// }()
-
-	// l.Info("Server has started", zap.String("addr", config.AddrToRun.String()))
-	// err = server.ListenAndServe()
-	// if err != nil && err != http.ErrServerClosed {
-	// 	l.Fatal("ListenAndServe failed", zap.Error(err))
-	// }
-
-	// // Wait for server context to be stopped
-	// select {
-	// case <-serverCtx.Done():
-	// case <-time.After(30 * time.Second):
-	// 	l.Fatal("graceful shutdown timed out.. forcing exit")
-	// }
-	_, err := initService(serverCtx)
+	// Connect to postgres.
+	db, err := sql.Open("pgx", cfg.DSN)
 	if err != nil {
-		l.Fatal("init service failed", zap.Error(err))
-	}
-}
-
-func initService(ctx context.Context) (*app.App, error) {
-	err := config.Parse(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("parse flags: %w", err)
+		return fmt.Errorf("failed to open the database: %w", err)
 	}
 
-	db, err := postgres.Connect(ctx, config.DSN)
-	if err != nil {
-		return nil, fmt.Errorf("new store: %w", err)
+	// Log every query to the database.
+	db = sqldblogger.OpenDriver(cfg.DSN, db.Driver(), logger)
+
+	// Check connectivity and DSN correctness.
+	if err = db.Ping(); err != nil {
+		return fmt.Errorf("failed to connect to the database: %w", err)
 	}
 
-	app, err := app.New(ctx, db)
+	// Close connection.
+	defer func() {
+		if err = db.Close(); err != nil {
+			logger.Error(err)
+		}
+		_ = logger.Sync()
+	}()
+
+	emias, err := emias.NewClient(cfg, logger)
 	if err != nil {
-		return nil, fmt.Errorf("new app instance: %w", err)
+		return fmt.Errorf("new emias client: %w", err)
 	}
 
-	return app, nil
+	if err = emias.Synchronize(serverCtx); err != nil {
+		return fmt.Errorf("emias: %w", err)
+	}
+
+	return nil
 }

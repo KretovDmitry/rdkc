@@ -300,27 +300,26 @@ func (app *App) getStaff(ctx context.Context) (map[models.Specialty][]*models.St
 func (app *App) insertSchedule(ctx context.Context, shifts models.Shifts) error {
 	start := time.Now()
 
-	row := app.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM schedules;")
-
 	var numberOfOldShifts int
-	row.Scan(&numberOfOldShifts)
-	if err := row.Err(); err != nil {
+
+	err := app.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM schedules;").Scan(&numberOfOldShifts)
+	if err != nil {
 		return fmt.Errorf("failed to count rows in schedules: %w", err)
 	}
 
-	if numberOfOldShifts == len(shifts) {
-		app.logger.Info(
-			"number of rows in schedules is the same as in the shifts",
-			zap.Int("rows", len(shifts)),
-			zap.Duration("duration", time.Since(start)),
-		)
-		return nil
-	}
-
-	_, err := app.db.ExecContext(ctx, `TRUNCATE TABLE schedules;`)
-	if err != nil {
-		return fmt.Errorf("failed to truncate schedules: %w", err)
-	}
+	//	if numberOfOldShifts == len(shifts) {
+	//		app.logger.Info(
+	//			"number of rows in schedules is the same as in the shifts",
+	//			zap.Int("rows", len(shifts)),
+	//			zap.Duration("duration", time.Since(start)),
+	//		)
+	//		return nil
+	//	}
+	//
+	//	_, err := app.db.ExecContext(ctx, `TRUNCATE TABLE schedules;`)
+	//	if err != nil {
+	//		return fmt.Errorf("failed to truncate schedules: %w", err)
+	//	}
 
 	var values []string
 	var args []any
@@ -329,6 +328,9 @@ func (app *App) insertSchedule(ctx context.Context, shifts models.Shifts) error 
 		params := fmt.Sprintf("($%d, $%d, $%d)", base+1, base+2, base+3)
 		values = append(values, params)
 		args = append(args, s.Start, s.End, s.Staff.ID)
+		if s.Staff.ID == 0 {
+			fmt.Println(*s.Staff)
+		}
 	}
 
 	q := `
@@ -341,6 +343,12 @@ func (app *App) insertSchedule(ctx context.Context, shifts models.Shifts) error 
 		VALUES ` + strings.Join(values, ",") + `;`
 
 	_, err = app.db.ExecContext(ctx, q, args...)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return fmt.Errorf("retrieve staff with query (%s): %w",
+			formatQuery(q), formatPgError(pgErr),
+		)
+	}
 
 	app.logger.Info(
 		"inserted all shifts into schedules",
