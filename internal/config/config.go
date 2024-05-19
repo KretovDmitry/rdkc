@@ -1,134 +1,148 @@
 package config
 
 import (
-	"context"
 	"errors"
 	"flag"
-	"fmt"
+	"log"
 	"os"
-	"path"
-	"strconv"
 	"strings"
+	"time"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
-const (
-	defaultHost = "0.0.0.0"
-	defaultPort = 5000
+type (
+	// Config represents an application configuration.
+	Config struct {
+		// The data source name (DSN) for connecting to the database.
+		DSN string `env:"DATABASE_URI"`
+		// Subconfigs.
+		Emias      Emias      `yaml:"emias"`
+		HTTPServer HTTPServer `yaml:"http_server"`
+		JWT        JWT        `yaml:"jwt"`
+		Logger     Logger     `yaml:"logger"`
+		Sheets     Sheets     `yaml:"google_sheets"`
+		// Cost to hash the password. Must be grater than 3.
+		PasswordHashCost int `yaml:"password_hash_cost" env-default:"14"`
+		// Path to migrations.
+		Migrations string `yaml:"migrations_path"`
+	}
+	// Config for interaction with emias service.
+	Emias struct {
+		// The address of the emias server.
+		Host   string `yaml:"host" env:"EMIAS_HOST"`
+		Scheme string `yaml:"scheme"`
+		// Mock real user agent.
+		UserAgent string `yaml:"user_agent"`
+		// Client timeout.
+		Timeout time.Duration `yaml:"timeout" env-default:"10s"`
+		// Time interval between calls.
+		Every time.Duration `yaml:"every" env-default:"10s"`
+		// Number of simultaneous calls to the emias service.
+		Burst int `yaml:"burst" env-default:"10"`
+		// Authentication credentials.
+		Credentials `env:"EMIAS_CREDENTIALS"`
+	}
+	// Config for HTTP server.
+	HTTPServer struct {
+		// The server startup address.
+		Address string `yaml:"run_address" env:"RUN_ADDRESS" env-default:"127.0.0.1:8080"`
+		// Read header timeout.
+		HeaderTimeout time.Duration `yaml:"header_timeout" env-default:"5s"`
+		// Idle timeout.
+		IdleTimeout time.Duration `yaml:"idle_timeout" end-default:"60s"`
+		// Shutdown timeout.
+		ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env:"SHUTDOWN_TIMEOUT" env-default:"30s"`
+	}
+	// Config for application's logger.
+	Logger struct {
+		// Path to store log files.
+		Path string `ymal:"log_path" env:"LOG_PATH"`
+		// Application logging level.
+		Level string `yaml:"level" env:"LOG_LEVEL" env-default:"info"`
+		// Log files details.
+		MaxSizeMB  int `yaml:"max_size_mb"`
+		MaxBackups int `yaml:"max_backups"`
+		MaxAgeDays int `yaml:"max_age_days"`
+	}
+	// Config for JWT.
+	JWT struct {
+		// JWT signing key.
+		SigningKey string `yaml:"signing_key" env:"JWT_SIGNING_KEY"`
+		// JWT expiration.
+		Expiration time.Duration `yaml:"expiration" env:"JWT_EXPIRATION" env-default:"24h"`
+	}
+	// Config for Google Sheets access.
+	Sheets struct {
+		// Path to the file with user's credentials for Google spreadsheets in JSON format.
+		CredentialsFile string `yaml:"credentials_file" env:"SHEETS_CREDENTIALS"`
+		// Path to the file with token.
+		TokenFile string `yaml:"token_file" env:"SHEETS_TOKEN"`
+		// ID of the Google Sheet.
+		SpreadsheetID string `yaml:"spreadsheet_id" env:"SPREADSHEET_ID"`
+	}
+	// Emias authentication credentials.
+	Credentials struct {
+		Login    string
+		Password string
+	}
 )
 
-type netAddress struct {
-	Host string
-	Port int
-}
+// Order of loading configuration:
+// 1. YAML file
+// 2. Flags
+// 3. Environment variables
 
-// NewNetAddress returns pointer to a new netAddress with default Host and Port
-func NewNetAddress() *netAddress {
-	return &netAddress{
-		Host: defaultHost,
-		Port: defaultPort,
+// Load returns an application configuration which is populated
+// from the given configuration file, flags and environment variables.
+func MustLoad() *Config {
+	// Configuration yaml file path.
+	configPath := "./config/local.yml"
+
+	// Check if file exists.
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		log.Fatalf("config file does not exist: %v", err)
 	}
-}
 
-func (a netAddress) String() string {
-	return fmt.Sprintf("%s:%d", a.Host, a.Port)
-}
+	var cfg Config
 
-func (a *netAddress) Set(s string) error {
-	s = strings.TrimPrefix(s, "http://")
-	hp := strings.Split(s, ":")
-	if len(hp) != 2 {
-		return errors.New("need address in a form host:port")
-	}
-	port, err := strconv.Atoi(hp[1])
+	// Load from YAML cfg file.
+	file, err := os.Open(configPath)
 	if err != nil {
-		return fmt.Errorf("invalid port: %w", err)
+		log.Fatalf("failed to open config file: %v", err)
 	}
-	if hp[0] != "" {
-		a.Host = hp[0]
+	if err = cleanenv.ParseYAML(file, &cfg); err != nil {
+		log.Fatalf("failed to parse config file: %v", err)
 	}
-	a.Port = port
-	return nil
-}
 
-type emiasUser struct {
-	Login    string
-	Password string
-}
-
-func (u *emiasUser) String() string {
-	return fmt.Sprintf("Login: %s, Password: %s\r\n", u.Login, u.Password)
-}
-
-func (u *emiasUser) Set(credentials string) error {
-	cr := strings.Split(credentials, ",")
-	if len(cr) != 2 {
-		return errors.New("need emias user in the form: login,password")
-	}
-	if cr[0] == "" || cr[1] == "" {
-		return errors.New("need emias user in the form: login,password")
-	}
-	u.Login = cr[0]
-	u.Password = cr[1]
-	return nil
-}
-
-var (
-	AddrToRun       = NewNetAddress()
-	CredentialsFile string
-	TokenFile       string
-	SpreadsheetId   string
-	DSN             string
-	LogLevel        string
-	EmiasUser       = new(emiasUser)
-)
-
-func Parse(ctx context.Context) error {
-	var ok bool
-
-	// flags take precedence over the default values
-	flag.Var(AddrToRun, "a", "Net address host:port to run server")
-	flag.Var(EmiasUser, "u", "Emias user credentials in the form: login,password")
-	flag.StringVar(&DSN, "d", "", "Data source name in form postgres URL or DSN string")
-	flag.StringVar(&LogLevel, "l", "info", "Log level")
+	// Read given flags. If not provided use file values.
+	flag.StringVar(&cfg.HTTPServer.Address, "a", cfg.HTTPServer.Address, "server startup address")
+	flag.StringVar(&cfg.DSN, "d", cfg.DSN, "server data source name")
+	flag.StringVar(&cfg.Logger.Level, "l", cfg.Logger.Level, "logger level")
+	flag.Var(&cfg.Emias.Credentials, "u", "emias credentials: login,password")
 	flag.Parse()
 
-	// ENV variables have the highest priority
-	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
-		if err := AddrToRun.Set(envRunAddr); err != nil {
-			return fmt.Errorf("invalid SERVER_ADDRESS: %w", err)
-		}
+	// Read environment variables.
+	if err = cleanenv.ReadEnv(&cfg); err != nil {
+		log.Fatalf("failed to read environment variables: %v", err)
 	}
 
-	if credentials := os.Getenv("EMIAS_USER"); credentials != "" {
-		err := EmiasUser.Set(credentials)
-		if err != nil {
-			return fmt.Errorf("invalid EMIAS_USER: %w", err)
-		}
-	}
+	return &cfg
+}
 
-	// The SHEETS_CREDENTIALS must contain user's credentials for Google
-	// spreadsheets in JSON format.
-	if CredentialsFile, ok = os.LookupEnv("SHEETS_CREDENTIALS"); !ok {
-		return errors.New("empty SHEETS_CREDENTIALS")
+func (c *Credentials) Set(credentials string) error {
+	cr := strings.Split(credentials, ",")
+	if len(cr) != 2 {
+		return errors.New("need emias user in form: login,password")
 	}
-
-	// The file token.json stores the user's access and refresh tokens, and is
-	// created automatically when the authorization flow completes for the first
-	// time.
-	TokenFile = path.Join(path.Dir(CredentialsFile), "token.json")
-	if tokenFile := os.Getenv("SHEETS_TOKEN"); tokenFile != "" {
-		TokenFile = tokenFile
+	if cr[0] == "" || cr[1] == "" {
+		return errors.New("need emias user in form: login,password")
 	}
-
-	if SpreadsheetId, ok = os.LookupEnv("SPREADSHEET_ID"); !ok {
-		return errors.New("empty SPREADSHEET_ID")
-	}
-	if envDSN := os.Getenv("DATABASE_DSN"); envDSN != "" {
-		DSN = envDSN
-	}
-	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
-		LogLevel = envLogLevel
-	}
-
+	c.Login = cr[0]
+	c.Password = cr[1]
 	return nil
+}
+
+func (c *Credentials) String() string {
+	return c.Login
 }

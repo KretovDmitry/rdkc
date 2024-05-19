@@ -28,7 +28,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("create new emias client: %w", err)
 	}
 
-	if err := emiasClient.Synchronize(); err != nil {
+	if err := emiasClient.Synchronize(ctx); err != nil {
 		return fmt.Errorf("emias: %w", err)
 	}
 

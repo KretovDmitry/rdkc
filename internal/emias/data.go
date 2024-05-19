@@ -1,6 +1,7 @@
 package emias
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,40 +9,28 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-type gridPayloadEntity struct {
-	Id      string `json:"MedService_id,omitempty"`
-	BegDate string `json:"beg_date,omitempty"`
-	EndDate string `json:"end_date,omitempty"`
-	Limit   string `json:"limit,omitempty"`
+type serviceQueryParams struct {
+	Id      string
+	BegDate string
+	EndDate string
+	Limit   string
 }
 
-func newGridPayloadEntity(id string) gridPayloadEntity {
-	ct := time.Now()
-	return gridPayloadEntity{
+func newServiceQueryParams(id string) serviceQueryParams {
+	now := time.Now()
+	return serviceQueryParams{
 		Id:      id,
-		BegDate: ct.Format("02.01.2006"),
-		EndDate: ct.Format("02.01.2006"),
+		BegDate: now.Format("02.01.2006"),
+		EndDate: now.Format("02.01.2006"),
 		Limit:   "200",
 	}
-}
-
-const (
-	reanimationGridId = "11380"
-	tmkGridId         = "500801000003930"
-	childrenGridId    = "500801000010630"
-)
-
-var gridPayload = [...]gridPayloadEntity{
-	newGridPayloadEntity(reanimationGridId),
-	newGridPayloadEntity(tmkGridId),
-	newGridPayloadEntity(childrenGridId),
 }
 
 type (
@@ -52,13 +41,14 @@ type (
 	serviceResponseItem struct {
 		PatientId    string `json:"Person_id,omitempty"`
 		PatientFIO   string `json:"Person_FIO,omitempty"`
-		RequestId    string `json:"EnvDirection_Num,omitempty"`
+		RequestID    string `json:"EnvDirection_Num,omitempty"`
 		Diagnosis    string `json:"Diag_FullName,omitempty"`
 		Specialty    string `json:"LpuSectionProfile_Name,omitempty"`
 		Status       string `json:"EvnDirectionStatus_SysNick,omitempty"`
 		Hospital     string `json:"Lpu_Nick,omitempty"`
 		CreationDate string `json:"EvnDirection_insDate,omitempty"`
 		CreationTime string `json:"EvnDirection_insTime,omitempty"`
+		Result       string `json:"evndirection_result,omitempty"`
 	}
 )
 
@@ -75,21 +65,98 @@ func (r serviceResponseItem) String() string {
 	Diagnosis: %s
 	Specialty: %s
 	Status: %s
+	Result: %s
 	Hospital: %s
 	Created: %s	%s
-	`, caser.String(r.PatientFIO),
-		r.PatientId, r.Diagnosis, r.Specialty, r.Status,
-		r.Hospital, r.CreationDate, r.CreationTime)
+	`,
+		caser.String(r.PatientFIO), r.PatientId,
+		r.Diagnosis,
+		r.Specialty,
+		r.Status,
+		r.Result,
+		convertHospitalName(r.Hospital),
+		r.CreationDate, r.CreationTime)
 }
 
 // loadServicesData loads data form each service of the emias
-func (c *emiasClient) loadServicesData() error {
-	defer logCallDuration(time.Now())
-	var wg sync.WaitGroup
+func (c *emiasClient) loadServicesData(ctx context.Context) error {
+	servicesID := []string{"11380", "500801000003930", "500801000010630"}
 
+	work := c.serviceRequestGenerator(servicesID)
+
+	defer c.logCallDuration(time.Now())
+	eg, ctx := errgroup.WithContext(ctx)
+
+	resultChan := make(chan []serviceResponseItem, len(servicesID))
+	allResults := make([]serviceResponseItem, 0)
+
+	// read all results into an array
+	eg.Go(func() error {
+		returned := 0
+		for {
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			case shifts := <-resultChan:
+				returned++
+				allResults = append(allResults, shifts...)
+				if returned == len(servicesID) {
+					return nil
+				}
+			}
+		}
+	})
+
+	for req := range work {
+		req := req
+		eg.Go(func() error {
+			if err := c.loadServiceData(req, resultChan); err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	for _, resp := range allResults {
+		fmt.Println(resp)
+	}
+
+	return nil
+}
+
+func (c *emiasClient) loadServiceData(r *http.Request, resultChan chan []serviceResponseItem) error {
+	defer c.logCallDuration(time.Now())
+
+	response, err := c.Do(r)
+	if err != nil {
+		return fmt.Errorf("do a request: %w", err)
+	}
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("read response body: %w", err)
+	}
+	response.Body.Close()
+
+	data := newServiceResponse()
+
+	if err := json.Unmarshal(body, data); err != nil {
+		return fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	resultChan <- data.Data
+
+	return nil
+}
+
+func (c *emiasClient) serviceRequestGenerator(servicesID []string) chan *http.Request {
 	gridURL := url.URL{
-		Scheme: scheme,
-		Host:   host,
+		Scheme: c.config.Emias.Scheme,
+		Host:   c.config.Emias.Host,
 	}
 
 	q := gridURL.Query()
@@ -97,61 +164,28 @@ func (c *emiasClient) loadServicesData() error {
 	q.Set("m", "loadWorkPlaceGrid")
 	gridURL.RawQuery = q.Encode()
 
-	for _, entity := range gridPayload {
-		data := url.Values{}
-		data.Set("MedService_id", entity.Id)
-		data.Set("begDate", entity.BegDate)
-		data.Set("endDate", entity.EndDate)
-		data.Set("limit", entity.Limit)
+	work := make(chan *http.Request, len(servicesID))
 
-		request, err := http.NewRequest(
-			http.MethodPost, gridURL.String(), strings.NewReader(data.Encode()))
-		if err != nil {
-			return fmt.Errorf("create new request: %w", err)
+	go func() {
+		for _, id := range servicesID {
+			data := url.Values{}
+			data.Set("MedService_id", id)
+			data.Set("begDate", time.Now().Format("02.01.2006"))
+			data.Set("endDate", time.Now().Format("02.01.2006"))
+			data.Set("limit", "200")
+
+			req, _ := http.NewRequest(http.MethodPost, gridURL.String(), strings.NewReader(data.Encode()))
+
+			req.Header.Set("connection", "keep-alive")
+			req.Header.Set("user-agent", c.config.Emias.UserAgent)
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
+
+			work <- req
 		}
 
-		request.Header.Set("connection", "keep-alive")
-		request.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36")
-		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		request.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
+		close(work)
+	}()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			resp, err := c.loadServiceData(request)
-			if err != nil {
-				fmt.Println(err)
-			}
-			for _, e := range (*resp).Data {
-				fmt.Println(e)
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	return nil
-}
-
-func (c *emiasClient) loadServiceData(r *http.Request) (*serviceResponse, error) {
-	defer logCallDuration(time.Now())
-
-	response, err := c.Do(r)
-	if err != nil {
-		return nil, fmt.Errorf("do a request: %w", err)
-	}
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read response body: %w", err)
-	}
-
-	data := newServiceResponse()
-
-	if err := json.Unmarshal(body, data); err != nil {
-		return nil, fmt.Errorf("unmarshal response: %w", err)
-	}
-
-	return data, nil
+	return work
 }
