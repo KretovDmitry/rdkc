@@ -13,7 +13,7 @@ import (
 	"github.com/KretovDmitry/rdkc/internal/config"
 	"github.com/KretovDmitry/rdkc/internal/domain/entities"
 	"github.com/KretovDmitry/rdkc/internal/domain/entities/user"
-	"github.com/KretovDmitry/rdkc/internal/logger"
+	"github.com/KretovDmitry/rdkc/pkg/logger"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"

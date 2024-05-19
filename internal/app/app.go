@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/KretovDmitry/rdkc/internal/logger"
 	"github.com/KretovDmitry/rdkc/internal/sheets"
 	"go.uber.org/zap"
 )

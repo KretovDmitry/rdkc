@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KretovDmitry/rdkc/internal/application/errs"
 	"github.com/KretovDmitry/rdkc/internal/config"
-	"github.com/KretovDmitry/rdkc/internal/logger"
 	"github.com/KretovDmitry/rdkc/internal/models"
 	"github.com/KretovDmitry/rdkc/internal/sheets/client"
+	"github.com/KretovDmitry/rdkc/pkg/logger"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/option"
@@ -18,10 +19,19 @@ import (
 
 type App struct {
 	sheets *sheets.Service
-	logger *zap.Logger
+	config *config.Config
+	logger logger.Logger
 }
 
-func New(ctx context.Context) (*App, error) {
+func New(ctx context.Context, config *config.Config, logger logger.Logger) (*App, error) {
+	if config == nil {
+		return nil, fmt.Errorf("%w: config", errs.ErrNilDependency)
+	}
+
+	if logger == nil {
+		return nil, fmt.Errorf("%w: logger", errs.ErrNilDependency)
+	}
+
 	client, err := client.Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve http client: %w", err)
@@ -32,7 +42,12 @@ func New(ctx context.Context) (*App, error) {
 		return nil, fmt.Errorf("unable to retrieve Sheets client: %w", err)
 	}
 
-	return &App{sheets: srv, logger: logger.Get()}, nil
+	return &App{
+			sheets: srv,
+			config: config,
+			logger: logger,
+		},
+		nil
 }
 
 func (app *App) GetSchedule(ctx context.Context) (models.Shifts, error) {
@@ -54,7 +69,7 @@ func (app *App) getValues(ctx context.Context, readRange string) (*sheets.ValueR
 		return nil, err
 	}
 
-	resp, err := app.sheets.Spreadsheets.Values.Get(config.SpreadsheetId, readRange).Do()
+	resp, err := app.sheets.Spreadsheets.Values.Get(app.config.Sheets.SpreadsheetID, readRange).Do()
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve data from sheet: %w", err)
 	}
