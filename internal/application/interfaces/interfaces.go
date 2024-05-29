@@ -2,7 +2,9 @@ package interfaces
 
 import (
 	"context"
+	"time"
 
+	"github.com/KretovDmitry/rdkc/internal/domain/entities"
 	"github.com/KretovDmitry/rdkc/internal/domain/entities/user"
 )
 
@@ -12,4 +14,13 @@ type AuthService interface {
 	Login(ctx context.Context, login, password string) (*user.User, error)
 	BuildAuthToken(user.ID) (string, error)
 	GetUserFromToken(ctx context.Context, token string) (*user.User, error)
+}
+
+type ScheduleService interface {
+	GetMonth(context.Context, time.Month) error
+}
+
+type SheetsService interface {
+	GetSchedule(context.Context) (entities.Shifts, error)
+	GetMonth(context.Context, time.Month) error
 }

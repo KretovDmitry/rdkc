@@ -13,14 +13,14 @@ import (
 )
 
 // Retrieve a token, saves the token, then returns the generated client.
-func Get(ctx context.Context) (*http.Client, error) {
-	cfg, err := getConfig()
+func Get(ctx context.Context, config *config.Config) (*http.Client, error) {
+	cfg, err := getConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"unable to retrieve OAuth config: %w", err,
 		)
 	}
-	tokFile := config.TokenFile
+	tokFile := config.Sheets.TokenFile
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
 		tok, err = getTokenFromWeb(ctx, cfg)
@@ -29,7 +29,7 @@ func Get(ctx context.Context) (*http.Client, error) {
 				"unable to retrieve token from web: %w", err,
 			)
 		}
-		if err := saveToken(tokFile, tok); err != nil {
+		if err = saveToken(tokFile, tok); err != nil {
 			return nil, fmt.Errorf(
 				"unable to save token to file: %w", err,
 			)
@@ -40,8 +40,8 @@ func Get(ctx context.Context) (*http.Client, error) {
 }
 
 // Retrieves a config from a local file.
-func getConfig() (*oauth2.Config, error) {
-	b, err := os.ReadFile(config.CredentialsFile)
+func getConfig(cfg *config.Config) (*oauth2.Config, error) {
+	b, err := os.ReadFile(cfg.Sheets.CredentialsFile)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"unable to read client credentials file: %w", err,
@@ -95,7 +95,7 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 // Saves a token to a file path.
 func saveToken(path string, token *oauth2.Token) error {
 	fmt.Printf("Saving credential file to: %s\n", path)
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("unable to cache oauth token: %w", err)
 	}

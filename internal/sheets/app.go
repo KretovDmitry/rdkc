@@ -27,7 +27,6 @@ func New(ctx context.Context, config *config.Config, logger logger.Logger) (*App
 	if config == nil {
 		return nil, fmt.Errorf("%w: config", errs.ErrNilDependency)
 	}
-
 	if logger == nil {
 		return nil, fmt.Errorf("%w: logger", errs.ErrNilDependency)
 	}
