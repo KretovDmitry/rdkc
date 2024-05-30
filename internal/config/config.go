@@ -80,11 +80,6 @@ type (
 		// ID of the Google Sheet.
 		SpreadsheetID string `yaml:"spreadsheet_id" env:"SPREADSHEET_ID"`
 	}
-	// Emias authentication credentials.
-	Credentials struct {
-		Login    string
-		Password string
-	}
 )
 
 // Order of loading configuration:

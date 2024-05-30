@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/KretovDmitry/rdkc/internal/domain/entities"
 	"github.com/KretovDmitry/rdkc/internal/domain/entities/user"
+	"google.golang.org/api/sheets/v4"
 )
 
 // AuthService represents all service actions.
@@ -17,10 +17,10 @@ type AuthService interface {
 }
 
 type ScheduleService interface {
-	GetMonth(context.Context, time.Month) error
+	UpdateStaff(ctx context.Context) error
+	UpdateSchedule(ctx context.Context, when time.Time) error
 }
 
 type SheetsService interface {
-	GetSchedule(context.Context) (entities.Shifts, error)
-	GetMonth(context.Context, time.Month) error
+	GetValuesFromRange(ctx context.Context, readRange string) (*sheets.ValueRange, error)
 }

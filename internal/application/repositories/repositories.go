@@ -14,7 +14,7 @@ type UserRepository interface {
 }
 
 type StaffRepository interface {
-	GetAll(context.Context) (map[string]entities.Staff, error)
+	GetAll(context.Context) (map[entities.Specialty]entities.Staff, error)
 	SaveAll(context.Context, entities.Staff) error
 }
 

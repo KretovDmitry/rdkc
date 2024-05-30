@@ -26,7 +26,7 @@ func (app *App) UpdateSchedule(ctx context.Context) error {
 	return nil
 }
 
-// пetSchedule retrieves the schedule from the Google Sheets and the database.
+// getSchedule retrieves the schedule from the Google Sheets and the database.
 // It returns a list of shifts and any errors encountered.
 func (app *App) getSchedule(ctx context.Context) (models.Shifts, error) {
 	// Get the staff from the Google Sheets.

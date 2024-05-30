@@ -18,5 +18,8 @@ logger:
 jwt:
   signing_key: "LxsKJywDL5O5PvgODZhBH12KE6k2yL8E"
   expiration: "24h"
+sheets:
+  credentials_file: "internal/application/services/sheets/credentials.json"
+  token_file: "internal/application/services/sheets/token.json"
 password_hash_cost: 14
 migrations_path: "."

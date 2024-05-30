@@ -1,9 +1,11 @@
 package entities
 
 type (
+	Specialty string
+
 	Employee struct {
 		ID             int
-		Specialty      string
+		Specialty      Specialty
 		EmiasSpecialty string
 		LastName       string
 		FirstName      string
@@ -14,4 +16,6 @@ type (
 	}
 
 	Staff []*Employee
+
+	StaffBySpecialty map[Specialty]Staff
 )

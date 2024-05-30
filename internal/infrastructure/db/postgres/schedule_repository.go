@@ -95,7 +95,7 @@ func (sr *ScheduleRepository) Update(ctx context.Context, shifts entities.Shifts
 	defer stmt.Close()
 
 	for _, s := range shifts {
-		res, err := stmt.ExecContext(
+		_, err = stmt.ExecContext(
 			ctx,
 			s.Employee.ID,
 			s.Employee.Specialty,
@@ -105,12 +105,6 @@ func (sr *ScheduleRepository) Update(ctx context.Context, shifts entities.Shifts
 		if err != nil {
 			return fmt.Errorf("exec context: %w", err)
 		}
-		lastID, err := res.LastInsertId()
-		if err != nil {
-			sr.logger.Errorf("last insert ID: %s", err)
-			continue
-		}
-		sr.logger.Infof("last inserted ID: %d", lastID)
 	}
 
 	return tx.Commit()

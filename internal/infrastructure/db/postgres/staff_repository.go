@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/KretovDmitry/rdkc/internal/application/errs"
 	"github.com/KretovDmitry/rdkc/internal/application/repositories"
@@ -47,8 +46,10 @@ func NewStaffRepository(
 	}, nil
 }
 
-func (sr *StaffRepository) GetAll(ctx context.Context) (map[string]entities.Staff, error) {
-	start := time.Now()
+func (sr *StaffRepository) GetAll(ctx context.Context) (
+	map[entities.Specialty]entities.Staff, error,
+) {
+	const approxNumOfSpecialties = 25
 
 	const q = `
 		SELECT
@@ -78,7 +79,7 @@ func (sr *StaffRepository) GetAll(ctx context.Context) (map[string]entities.Staf
 			formatQuery(q), err)
 	}
 
-	all := make(map[string]entities.Staff, 25)
+	all := make(map[entities.Specialty]entities.Staff, approxNumOfSpecialties)
 	// nullable values
 	var (
 		specialty       sql.NullString
@@ -91,7 +92,7 @@ func (sr *StaffRepository) GetAll(ctx context.Context) (map[string]entities.Staf
 
 	for rows.Next() {
 		s := new(entities.Employee)
-		err := rows.Scan(
+		err = rows.Scan(
 			&s.ID,
 			&specialty,
 			&emiasSpecialty,
@@ -107,7 +108,7 @@ func (sr *StaffRepository) GetAll(ctx context.Context) (map[string]entities.Staf
 				formatQuery(q), err)
 		}
 		if specialty.Valid {
-			s.Specialty = specialty.String
+			s.Specialty = entities.Specialty(specialty.String)
 		}
 		if emiasSpecialty.Valid {
 			s.EmiasSpecialty = emiasSpecialty.String
@@ -125,7 +126,7 @@ func (sr *StaffRepository) GetAll(ctx context.Context) (map[string]entities.Staf
 			s.Phone = cellPhoneNumber.String
 		}
 
-		lowerSpec := strings.ToLower(specialty.String)
+		lowerSpec := entities.Specialty(strings.ToLower(specialty.String))
 
 		all[lowerSpec] = append(all[lowerSpec], s)
 	}
@@ -145,17 +146,11 @@ func (sr *StaffRepository) GetAll(ctx context.Context) (map[string]entities.Staf
 		return nil, models.ErrNotFound
 	}
 
-	sr.logger.Info(
-		"got all staff from db (%d specialties) in %v",
-		len(all), time.Since(start),
-	)
-
 	return all, nil
 }
 
 // SaveAll saves all emploeeys into the database.
 func (sr *StaffRepository) SaveAll(ctx context.Context, staff entities.Staff) error {
-	start := time.Now()
 	ln := len(staff)
 
 	placeholders := make([]string, 0, ln)
@@ -201,8 +196,6 @@ func (sr *StaffRepository) SaveAll(ctx context.Context, staff entities.Staff) er
 	if err != nil {
 		return fmt.Errorf("schedule repository: exec context: %w", err)
 	}
-
-	sr.logger.Info("schedule repository: save all %d in %v", ln, time.Since(start))
 
 	return nil
 }
