@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"context"
@@ -14,42 +14,35 @@ import (
 	"github.com/KretovDmitry/rdkc/internal/domain/entities"
 	"github.com/KretovDmitry/rdkc/internal/domain/entities/user"
 	"github.com/KretovDmitry/rdkc/pkg/logger"
-	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService struct {
+type Service struct {
 	userRepo repositories.UserRepository
-	trm      *manager.Manager
 	logger   logger.Logger
 	config   *config.Config
 }
 
-func NewAuthService(
+func NewService(
 	userRepo repositories.UserRepository,
-	trm *manager.Manager,
 	logger logger.Logger,
 	config *config.Config,
-) (*AuthService, error) {
+) (*Service, error) {
 	if config == nil {
 		return nil, errors.New("nil dependency: config")
 	}
-	if trm == nil {
-		return nil, errors.New("nil dependency: transaction manager")
-	}
-	return &AuthService{
+	return &Service{
 		userRepo: userRepo,
-		trm:      trm,
 		logger:   logger,
 		config:   config,
 	}, nil
 }
 
-var _ interfaces.AuthService = (*AuthService)(nil)
+var _ interfaces.AuthService = (*Service)(nil)
 
 // Registr user.
-func (s *AuthService) Register(ctx context.Context, login, password string) (user.ID, error) {
+func (s *Service) Register(ctx context.Context, login, password string) (user.ID, error) {
 	var userID user.ID = -1
 
 	// Careate password hash.
@@ -63,7 +56,7 @@ func (s *AuthService) Register(ctx context.Context, login, password string) (use
 }
 
 // Authenticate user by login.
-func (s *AuthService) Login(ctx context.Context, login, password string) (*user.User, error) {
+func (s *Service) Login(ctx context.Context, login, password string) (*user.User, error) {
 	// Retrieve user from the database with provided login.
 	user, err := s.userRepo.GetUserByLogin(ctx, login)
 	if err != nil {
@@ -83,7 +76,7 @@ func (s *AuthService) Login(ctx context.Context, login, password string) (*user.
 }
 
 // BuildAuthToken creates a JWT string for the given user ID.
-func (s *AuthService) BuildAuthToken(userID user.ID) (string, error) {
+func (s *Service) BuildAuthToken(userID user.ID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, entities.AuthClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.config.JWT.Expiration)),
@@ -101,7 +94,7 @@ func (s *AuthService) BuildAuthToken(userID user.ID) (string, error) {
 }
 
 // GetUserFromToken extracts the user ID from a JWT token and returns user.
-func (s *AuthService) GetUserFromToken(ctx context.Context, tokenString string) (*user.User, error) {
+func (s *Service) GetUserFromToken(ctx context.Context, tokenString string) (*user.User, error) {
 	claims := new(entities.AuthClaims)
 
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
