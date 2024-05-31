@@ -96,7 +96,7 @@ func (s *Service) UpdateSchedule(ctx context.Context, when time.Time) error {
 		return fmt.Errorf("failed to get schedule from sheets: %w", err)
 	}
 
-	// Loop over shifts to populate employee with actual
+	// Loop over shifts to populate employee with the actual
 	// information from database.
 	for _, shift := range shifts {
 		// Return error if any specialty doesn't exists in DB.
@@ -107,7 +107,7 @@ func (s *Service) UpdateSchedule(ctx context.Context, when time.Time) error {
 			)
 		}
 		// Substitute uncompleted sheets employee record with
-		// actual one from database.
+		// actual one from the database.
 		for _, spec := range staffFromDB[shift.Employee.Specialty] {
 			if spec.FirstName == shift.Employee.FirstName &&
 				spec.LastName == shift.Employee.LastName &&
@@ -178,7 +178,7 @@ func (s *Service) getScheduleFromSheets(
 		return nil, err
 	}
 
-	s.logger.Info(
+	s.logger.Infof(
 		"got all shifts: %d in %vs",
 		len(allShifts), time.Since(start).Seconds(),
 	)
@@ -193,8 +193,8 @@ func (s *Service) getColShifts(
 	when time.Time,
 	out chan<- entities.Shifts,
 ) error {
-	columnWithDates := entities.Column("A")
-	firstDayOfMonth := time.Date(when.Year(), when.Month(), 1, 0, 0, 0, 0, time.Local)
+	const columnWithDates = entities.Column("A")
+	shiftDate := shiftMonthDay(when)
 	daysInMonth := daysInMonth(when)
 
 	// Read from the second row, first contains the specialty name.
@@ -240,12 +240,34 @@ func (s *Service) getColShifts(
 	// N row: working time in format "start[hh:mm]-end[hh:mm]"
 	// N+1 row: specialist in format "LastName FirstName MiddleName"
 	var day int
-	for i := 0; i < len(resp.Values); i += 2 {
+	for i = 0; i < len(resp.Values); i += 2 {
 		var (
-			lastName   string
-			firstName  string
-			middleName string
+			start time.Time
+			end   time.Time
 		)
+		workingTime, ok := resp.Values[i][0].(string)
+		if !ok {
+			return fmt.Errorf(
+				"unable to assert C[%s]R[%d] to string", col, i,
+			)
+		}
+
+		startEnd := strings.Split(workingTime, "-")
+
+		start, err = time.Parse("15:04", startEnd[0])
+		if err != nil {
+			return fmt.Errorf(
+				"unable to parse start time at C[%s]R[%d]: %w", col, i, err,
+			)
+		}
+
+		end, err = time.Parse("15:04", startEnd[1])
+		if err != nil {
+			return fmt.Errorf(
+				"unable to parse end time at C[%s]R[%d]: %w", col, i, err,
+			)
+		}
+
 		fullName, ok := resp.Values[i+1][0].(string)
 		if !ok {
 			return fmt.Errorf(
@@ -253,90 +275,29 @@ func (s *Service) getColShifts(
 			)
 		}
 
-		workingTime, ok := resp.Values[i][0].(string)
-		if !ok {
-			return fmt.Errorf(
-				"unable to assert C[%s]R[%d] to string", col, i+1,
-			)
-		}
-
-		startEnd := strings.Split(workingTime, "-")
-
-		start, err := time.Parse("15:04", startEnd[0])
-		if err != nil {
-			return fmt.Errorf(
-				"unable to parse start time at C[%s]R[%d]: %w", col, i+2, err,
-			)
-		}
-
-		end, err := time.Parse("15:04", startEnd[1])
-		if err != nil {
-			return fmt.Errorf(
-				"unable to parse end time at C[%s]R[%d]: %w", col, i+2, err,
-			)
-		}
-
 		switch {
-		// day shifts
+		// Day shifts starts and end up today so we do not increment
+		// day because the next shift will start today.
 		case start.Hour() < end.Hour():
-			days := time.Duration(day) * 24 * time.Hour
-			date := firstDayOfMonth.Add(days)
-			// start and end today
-			start = date.Add(time.Hour * time.Duration(start.Hour())).In(time.UTC)
-			end = date.Add(time.Hour*time.Duration(end.Hour()) - time.Second).In(time.UTC)
-			// do not increment day because the next shift will start today
+			start = addHours(shiftDate(day), start.Hour()).In(time.UTC)
+			end = addHoursGap(shiftDate(day), end.Hour()).In(time.UTC)
 
-		// night shifts
-		case start.Hour() > end.Hour():
-			days := time.Duration(day) * 24 * time.Hour
-			date := firstDayOfMonth.Add(days)
-			// start today
-			start = date.Add(time.Hour * time.Duration(start.Hour())).In(time.UTC)
-			day++
-			days = time.Duration(day) * 24 * time.Hour
-			date = firstDayOfMonth.Add(days)
-			// end tomorrow
-			end = date.Add(time.Hour*time.Duration(end.Hour()) - time.Second).In(time.UTC)
-
-		// 24 hours shifts
+		// 24 hours and night shifts starts today and end up tomorrow.
 		default:
-			days := time.Duration(day) * 24 * time.Hour
-			date := firstDayOfMonth.Add(days)
+			start = addHours(shiftDate(day), start.Hour()).In(time.UTC)
 			day++
-			start = date.Add(time.Hour * time.Duration(start.Hour())).In(time.UTC)
-			end = date.AddDate(0, 0, 1).Add(time.Hour*time.Duration(end.Hour()) - time.Second).In(time.UTC)
+			end = addHoursGap(shiftDate(day), end.Hour()).In(time.UTC)
 		}
 
-		name := strings.Split(strings.TrimSpace(fullName), " ")
-		switch len(name) {
-		case 3:
-			lastName = name[0]
-			firstName = name[1]
-			middleName = name[2]
-		case 2:
-			lastName = name[0]
-			firstName = name[1]
-		case 1:
-			lastName = name[0]
-		case 0:
-			return fmt.Errorf("empty name at C[%s]R[%d]", col, i+1)
-		default:
-			lastName = name[0]
-			firstName = name[1]
-			middleName = strings.Join(name[2:], " ")
-		}
+		employee := new(entities.Employee)
+		employee.Specialty = trimSpecialty(string(spec))
+		employee.SetNameFromFullName(fullName)
 
 		shifts = append(shifts, &entities.Shift{
-			Employee: &entities.Employee{
-				FirstName:  firstName,
-				LastName:   lastName,
-				MiddleName: middleName,
-				Specialty:  spec,
-			},
-			Start: start,
-			End:   end,
-		},
-		)
+			Employee: employee,
+			Start:    start,
+			End:      end,
+		})
 	}
 
 	select {
@@ -367,7 +328,8 @@ func (s *Service) mapSpecialtyToColumn(
 			if c == "Дата" || c == "Координатор" {
 				continue
 			}
-			specColumns[trimSpecialty(c)] = convertToTitle(i + 1)
+			c = strings.ToLower(strings.TrimSpace(c))
+			specColumns[entities.Specialty(c)] = convertToTitle(i + 1)
 		}
 	}
 
@@ -436,14 +398,11 @@ func (s *Service) getGoogleSpreadsheetStaff(ctx context.Context) (entities.Staff
 		}
 
 		var (
-			specialty  string
-			fullName   string
-			firstName  string
-			lastName   string
-			middleName string
-			phone      string
-			email      string
-			ok         bool
+			specialty string
+			fullName  string
+			phone     string
+			email     string
+			ok        bool
 		)
 
 		if len(specialties.Values[i]) > 0 {
@@ -499,35 +458,16 @@ func (s *Service) getGoogleSpreadsheetStaff(ctx context.Context) (entities.Staff
 		// Trim common prefixes which are unused in the database representation.
 		spec := trimSpecialty(specialty)
 
-		name := strings.Split(fullName, " ")
-		switch len(name) {
-		case 3:
-			lastName = name[0]
-			firstName = name[1]
-			middleName = name[2]
-		case 2:
-			lastName = name[0]
-			firstName = name[1]
-		case 1:
-			lastName = name[0]
-		case 0:
-			return nil, fmt.Errorf("empty name at C[%s]R[%d]", nameCol, i+1)
-		default:
-			lastName = name[0]
-			firstName = name[1]
-			middleName = strings.Join(name[2:], " ")
+		employee := &entities.Employee{
+			ID:        i + 1,
+			Phone:     strings.TrimSpace(phone),
+			Email:     strings.TrimSpace(email),
+			Specialty: spec,
+			ForAdults: forAdults,
 		}
+		employee.SetNameFromFullName(fullName)
 
-		staff[spec] = append(staff[spec], &entities.Employee{
-			ID:         i + 1,
-			FirstName:  strings.TrimSpace(firstName),
-			LastName:   strings.TrimSpace(lastName),
-			MiddleName: strings.TrimSpace(middleName),
-			Phone:      strings.TrimSpace(phone),
-			Email:      strings.TrimSpace(email),
-			Specialty:  spec,
-			ForAdults:  forAdults,
-		})
+		staff[spec] = append(staff[spec], employee)
 	}
 
 	s.logger.Infof("got all contacts from sheets (%d specialties) in %vs",
@@ -609,4 +549,74 @@ func trimSpecialty(specialty string) entities.Specialty {
 	specialty = strings.TrimPrefix(specialty, "детский ")
 
 	return entities.Specialty(strings.TrimSpace(specialty))
+}
+
+func shiftMonthDay(t time.Time) func(days int) time.Time {
+	const day = 24 * time.Hour
+	firstDayOfMonth := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.Local)
+	return func(days int) time.Time {
+		return firstDayOfMonth.Add(time.Duration(days) * day)
+	}
+}
+
+func addHours(t time.Time, hours int) time.Time {
+	return t.Add(time.Hour * time.Duration(hours))
+}
+
+func addHoursGap(t time.Time, hours int) time.Time {
+	return t.Add(time.Hour*time.Duration(hours) - time.Millisecond)
+}
+
+func (s *Service) DebugSchedule(ctx context.Context, when time.Time) error {
+	// Get staff from the database.
+	staffFromDB, err := s.staffRepo.GetAll(ctx)
+	if err != nil {
+		return fmt.Errorf("get staff from database: %w", err)
+	}
+
+	// Get schedule from the Google Sheets.
+	shifts, err := s.getScheduleFromSheets(ctx, when)
+	if err != nil {
+		return fmt.Errorf("failed to get schedule from sheets: %w", err)
+	}
+
+	// Loop over shifts to populate employee with the actual
+	// information from database.
+	for _, shift := range shifts {
+		// Return error if any specialty doesn't exists in DB.
+		if staffFromDB[shift.Employee.Specialty] == nil {
+			return fmt.Errorf(
+				"no such specialty in staff table: %s",
+				shift.Employee.Specialty,
+			)
+		}
+		// Substitute uncompleted sheets employee record with
+		// actual one from the database.
+		for _, spec := range staffFromDB[shift.Employee.Specialty] {
+			if spec.FirstName == shift.Employee.FirstName &&
+				spec.LastName == shift.Employee.LastName &&
+				spec.MiddleName == shift.Employee.MiddleName {
+				shift.Employee = spec
+				break
+			}
+		}
+	}
+
+	// Debug print.
+	for _, shift := range shifts {
+		fmt.Printf(
+			"ID: %d\tSPEC: %s(%s)\t%s %s %s\t\t\tSTART: %s\tEND: %s\tADULTS: %t\n",
+			shift.Employee.ID,
+			shift.Employee.Specialty,
+			shift.Employee.EmiasSpecialty,
+			shift.Employee.LastName,
+			shift.Employee.FirstName,
+			shift.Employee.MiddleName,
+			shift.Start.Local(),
+			shift.End.Local(),
+			shift.Employee.ForAdults,
+		)
+	}
+
+	return nil
 }

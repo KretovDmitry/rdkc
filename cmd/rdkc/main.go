@@ -18,7 +18,7 @@ import (
 )
 
 // Version indicates the current version of the application.
-var Version = "1.0.0"
+var Version = "1.0.1"
 
 func main() {
 	if err := run(); err != nil {
@@ -95,9 +95,9 @@ func run() error {
 	}
 
 	when := time.Now()
-	when = time.Date(when.Year(), when.Month()-1, 1, 0, 0, 0, 0, time.UTC)
+	when = time.Date(when.Year(), when.Month()+1, 1, 0, 0, 0, 0, time.UTC)
 
-	err = scheduleService.UpdateSchedule(serverCtx, when)
+	err = scheduleService.DebugSchedule(serverCtx, when)
 	if err != nil {
 		return fmt.Errorf("failed to update schedule from google spreadsheet: %w", err)
 	}
